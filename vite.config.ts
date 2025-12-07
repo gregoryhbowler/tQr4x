@@ -12,6 +12,7 @@ export default defineConfig({
     exclude: ['src/audio/worklets/*', '@vectorsize/woscillators'],
   },
   build: {
+    outDir: 'docs',
     commonjsOptions: {
       include: [/@vectorsize\/woscillators/, /node_modules/],
     },
