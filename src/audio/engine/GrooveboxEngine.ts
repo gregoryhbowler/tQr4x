@@ -80,6 +80,9 @@ export class GrooveboxEngine {
   private _swing = 0;
   private _ppqn = 96;
 
+  // Flag to track manual pattern switches (to avoid double-applying slot state)
+  private isManualPatternSwitch = false;
+
   // Simple click oscillator for testing
   private clickGain: GainNode | null = null;
 
@@ -177,6 +180,18 @@ export class GrooveboxEngine {
 
       // Create sequencer
       this.sequencer = new Sequencer(this.clock);
+
+      // Subscribe to pattern slot changes from sequencer (e.g., arranger)
+      // This ensures voice/channel/FX configs are applied when arranger changes patterns
+      this.sequencer.onPatternSlotChange((slot) => {
+        // Only apply slot state if this wasn't triggered by our own setActivePatternSlot
+        // (which handles state application itself with proper capture/apply sequence)
+        if (!this.isManualPatternSwitch) {
+          // Capture current state before applying new slot's state
+          this.captureCurrentSlotState();
+          this.applySlotState(slot);
+        }
+      });
 
       // Create mixer (handles FX routing to destination)
       this.mixer = new Mixer(this.audioContext);
@@ -621,7 +636,10 @@ export class GrooveboxEngine {
     this.captureCurrentSlotState();
 
     // 2. Switch the pattern slot in the sequencer
+    // Set flag to prevent the listener from also applying slot state
+    this.isManualPatternSwitch = true;
     const success = this.sequencer.setActivePatternSlot(slot);
+    this.isManualPatternSwitch = false;
     if (!success) return false;
 
     // 3. Apply state from the new slot (if it has stored configs)
