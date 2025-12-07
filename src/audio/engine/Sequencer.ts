@@ -267,6 +267,21 @@ export interface PatternSlotConfig {
   fxConfig?: SlotFXConfig;
 }
 
+/**
+ * Serialized version of a single slot config for JSON export
+ */
+export interface SerializedSlotConfig {
+  trackConfigs: Array<{ trackId: string; config: SlotVoiceConfig }>;
+  channelConfigs: Array<{ trackId: string; config: SlotChannelConfig }>;
+  performanceConfigs: Array<{ trackId: string; config: SlotPerformanceConfig }>;
+  fxConfig?: SlotFXConfig;
+}
+
+/**
+ * Serialized pattern slot configs indexed by slot number
+ */
+export type SerializedSlotConfigs = Record<number, SerializedSlotConfig>;
+
 export interface Track {
   id: string;
   name: string;
@@ -1096,6 +1111,80 @@ export class Sequencer {
   slotHasFXConfig(slot: number): boolean {
     const slotConfig = this.patternSlotConfigs.get(slot);
     return slotConfig?.fxConfig !== undefined;
+  }
+
+  /**
+   * Export all pattern slot configs for serialization
+   */
+  exportSlotConfigs(): SerializedSlotConfigs {
+    const result: SerializedSlotConfigs = {};
+
+    this.patternSlotConfigs.forEach((config, slot) => {
+      const trackConfigs: Array<{ trackId: string; config: SlotVoiceConfig }> = [];
+      config.trackConfigs.forEach((voiceConfig, trackId) => {
+        trackConfigs.push({ trackId, config: deepClone(voiceConfig) });
+      });
+
+      const channelConfigs: Array<{ trackId: string; config: SlotChannelConfig }> = [];
+      config.channelConfigs.forEach((channelConfig, trackId) => {
+        channelConfigs.push({ trackId, config: deepClone(channelConfig) });
+      });
+
+      const performanceConfigs: Array<{ trackId: string; config: SlotPerformanceConfig }> = [];
+      config.trackPerformance.forEach((perfConfig, trackId) => {
+        performanceConfigs.push({ trackId, config: deepClone(perfConfig) });
+      });
+
+      result[slot] = {
+        trackConfigs,
+        channelConfigs,
+        performanceConfigs,
+        fxConfig: config.fxConfig ? deepClone(config.fxConfig) : undefined,
+      };
+    });
+
+    return result;
+  }
+
+  /**
+   * Import pattern slot configs from serialized data
+   */
+  importSlotConfigs(data: SerializedSlotConfigs): void {
+    // Clear existing configs
+    this.patternSlotConfigs.clear();
+
+    for (const [slotStr, slotData] of Object.entries(data)) {
+      const slot = parseInt(slotStr, 10);
+      if (isNaN(slot)) continue;
+
+      const config: PatternSlotConfig = {
+        trackConfigs: new Map(),
+        channelConfigs: new Map(),
+        trackPerformance: new Map(),
+      };
+
+      // Restore track voice configs
+      for (const { trackId, config: voiceConfig } of slotData.trackConfigs) {
+        config.trackConfigs.set(trackId, deepClone(voiceConfig));
+      }
+
+      // Restore channel configs
+      for (const { trackId, config: channelConfig } of slotData.channelConfigs) {
+        config.channelConfigs.set(trackId, deepClone(channelConfig));
+      }
+
+      // Restore performance configs
+      for (const { trackId, config: perfConfig } of slotData.performanceConfigs) {
+        config.trackPerformance.set(trackId, deepClone(perfConfig));
+      }
+
+      // Restore FX config
+      if (slotData.fxConfig) {
+        config.fxConfig = deepClone(slotData.fxConfig);
+      }
+
+      this.patternSlotConfigs.set(slot, config);
+    }
   }
 
   /**

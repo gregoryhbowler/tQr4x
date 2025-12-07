@@ -573,6 +573,22 @@ function App() {
     setMixerRefreshKey(prev => prev + 1);
   }, []);
 
+  // Refresh global FX params from engine (for pattern switching)
+  const handleFXParamsRefresh = useCallback(() => {
+    setMimeophonParams(engine.getMimeophonParams());
+    setMimeophonParams2(engine.getMimeophonParams2());
+    setMimeophonParams3(engine.getMimeophonParams3());
+    setMimeophonParams4(engine.getMimeophonParams4());
+    setReverbParams(engine.getReverbParams());
+    setMasterParams(engine.getMasterParams());
+    setMimeophonReturnLevel(engine.getMimeophonReturnLevel());
+    setMimeophonReturnLevel2(engine.getMimeophonReturnLevel2());
+    setMimeophonReturnLevel3(engine.getMimeophonReturnLevel3());
+    setMimeophonReturnLevel4(engine.getMimeophonReturnLevel4());
+    setReverbReturnLevel(engine.getReverbReturnLevel());
+    setFxCrossSends(engine.getFXCrossSends());
+  }, []);
+
   // Mixer toggle handler
   const handleMixerToggle = useCallback(() => {
     setMixerOpen(prev => !prev);
@@ -677,6 +693,7 @@ function App() {
           <PatternBank
             onVoiceConfigsRefresh={handleVoiceConfigsRefresh}
             onChannelParamsRefresh={handleChannelParamsRefresh}
+            onFXParamsRefresh={handleFXParamsRefresh}
           />
           <PatternSequencer />
         </section>

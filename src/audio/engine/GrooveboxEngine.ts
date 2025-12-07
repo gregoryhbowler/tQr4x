@@ -2157,6 +2157,9 @@ export class GrooveboxEngine {
 
       // Pattern bank
       activePatternSlot: this.getActivePatternSlot(),
+
+      // Per-pattern slot configurations
+      slotConfigs: this.sequencer?.exportSlotConfigs(),
     };
   }
 
@@ -2313,6 +2316,19 @@ export class GrooveboxEngine {
         enabled: preset.microJitterEnabled,
         amount: preset.microJitterAmount,
       });
+    }
+
+    // Restore pattern slot configs (per-pattern voice/channel/FX settings)
+    if (preset.slotConfigs && this.sequencer) {
+      this.sequencer.importSlotConfigs(preset.slotConfigs);
+    }
+
+    // Restore active pattern slot and apply its state
+    if (preset.activePatternSlot && this.sequencer) {
+      // First set the active slot in the sequencer
+      this.sequencer.setActivePatternSlot(preset.activePatternSlot);
+      // Then apply the slot's stored state (voice/channel/FX configs)
+      this.applySlotState(preset.activePatternSlot);
     }
 
     // Return state for React

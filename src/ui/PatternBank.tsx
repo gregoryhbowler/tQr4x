@@ -16,6 +16,8 @@ interface PatternBankProps {
   onVoiceConfigsRefresh?: () => void;
   /** Callback when channel params need to be refreshed (after paste) */
   onChannelParamsRefresh?: () => void;
+  /** Callback when global FX params need to be refreshed (after pattern switch) */
+  onFXParamsRefresh?: () => void;
 }
 
 interface ContextMenuState {
@@ -25,7 +27,7 @@ interface ContextMenuState {
   slot: number;
 }
 
-export function PatternBank({ onVoiceConfigsRefresh, onChannelParamsRefresh }: PatternBankProps) {
+export function PatternBank({ onVoiceConfigsRefresh, onChannelParamsRefresh, onFXParamsRefresh }: PatternBankProps) {
   const [activeSlot, setActiveSlot] = useState(1);
   const [slotStates, setSlotStates] = useState<boolean[]>(Array(PATTERN_BANK_SIZE).fill(true)); // true = empty
   const [hasClipboard, setHasClipboard] = useState(false);
@@ -43,13 +45,17 @@ export function PatternBank({ onVoiceConfigsRefresh, onChannelParamsRefresh }: P
     }
     setSlotStates(states);
 
-    // Subscribe to pattern slot changes
+    // Subscribe to pattern slot changes (e.g., from arranger)
     const unsubscribe = engine.onPatternSlotChange((slot) => {
       setActiveSlot(slot);
+      // Refresh all UI state when arranger changes patterns
+      onVoiceConfigsRefresh?.();
+      onChannelParamsRefresh?.();
+      onFXParamsRefresh?.();
     });
 
     return unsubscribe;
-  }, []);
+  }, [onVoiceConfigsRefresh, onChannelParamsRefresh, onFXParamsRefresh]);
 
   // Refresh slot states
   const refreshSlotStates = useCallback(() => {
@@ -69,12 +75,13 @@ export function PatternBank({ onVoiceConfigsRefresh, onChannelParamsRefresh }: P
     setActiveSlot(slot);
     // Close context menu if open
     setContextMenu(prev => ({ ...prev, visible: false }));
-    // Refresh UI if switching to a different slot (voice/channel configs may have changed)
+    // Refresh UI if switching to a different slot (voice/channel/FX configs may have changed)
     if (slot !== previousSlot) {
       onVoiceConfigsRefresh?.();
       onChannelParamsRefresh?.();
+      onFXParamsRefresh?.();
     }
-  }, [onVoiceConfigsRefresh, onChannelParamsRefresh]);
+  }, [onVoiceConfigsRefresh, onChannelParamsRefresh, onFXParamsRefresh]);
 
   // Handle right-click for context menu
   const handleContextMenu = useCallback((e: React.MouseEvent, slot: number) => {
@@ -120,7 +127,8 @@ export function PatternBank({ onVoiceConfigsRefresh, onChannelParamsRefresh }: P
     // Notify parent to refresh UI state
     onVoiceConfigsRefresh?.();
     onChannelParamsRefresh?.();
-  }, [contextMenu.slot, refreshSlotStates, onVoiceConfigsRefresh, onChannelParamsRefresh]);
+    onFXParamsRefresh?.();
+  }, [contextMenu.slot, refreshSlotStates, onVoiceConfigsRefresh, onChannelParamsRefresh, onFXParamsRefresh]);
 
   // Clear pattern
   const handleClear = useCallback(() => {

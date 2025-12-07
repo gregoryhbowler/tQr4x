@@ -132,6 +132,9 @@ export interface PresetState {
 
   // Pattern bank (which slot is active)
   activePatternSlot: number;
+
+  // Per-pattern slot configurations (voice/channel/FX per pattern)
+  slotConfigs?: import('../engine/Sequencer').SerializedSlotConfigs;
 }
 
 /**
