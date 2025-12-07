@@ -2,18 +2,13 @@ import { useState, useCallback, useMemo } from 'react';
 import type { MimeophonParams } from '../audio/fx/Mimeophon';
 import type { ReverbParams } from '../audio/fx/Reverb';
 import type { MasterBusParams } from '../audio/fx/MasterBus';
-import type { ChannelParams, FXCrossSends } from '../audio/fx/Mixer';
+import type { FXCrossSends } from '../audio/fx/Mixer';
 import { MIMEOPHON_PRESETS } from '../audio/fx/Mimeophon';
 import { REVERB_PRESETS } from '../audio/fx/Reverb';
 import { MASTER_PRESETS } from '../audio/fx/MasterBus';
 import './FXPanel.css';
 
 interface FXPanelProps {
-  // Track sends
-  trackId: string;
-  channelParams: ChannelParams | null;
-  onChannelChange: (trackId: string, params: Partial<ChannelParams>) => void;
-
   // Global FX params - 4 Mimeophons
   mimeophonParams: MimeophonParams;
   mimeophonParams2: MimeophonParams;
@@ -343,9 +338,6 @@ function detectFeedbackLoops(sends: FXCrossSends): string[] {
 }
 
 export function FXPanel({
-  trackId,
-  channelParams,
-  onChannelChange,
   mimeophonParams,
   mimeophonParams2,
   mimeophonParams3,
@@ -371,9 +363,9 @@ export function FXPanel({
   fxCrossSends,
   onFXCrossSendsChange
 }: FXPanelProps) {
-  const [expandedSection, setExpandedSection] = useState<'sends' | 'mimeophon' | 'mimeophon2' | 'mimeophon3' | 'mimeophon4' | 'reverb' | 'master' | 'routing' | null>('sends');
+  const [expandedSection, setExpandedSection] = useState<'mimeophon' | 'mimeophon2' | 'mimeophon3' | 'mimeophon4' | 'reverb' | 'master' | 'routing' | null>('mimeophon');
 
-  const toggleSection = useCallback((section: 'sends' | 'mimeophon' | 'mimeophon2' | 'mimeophon3' | 'mimeophon4' | 'reverb' | 'master' | 'routing') => {
+  const toggleSection = useCallback((section: 'mimeophon' | 'mimeophon2' | 'mimeophon3' | 'mimeophon4' | 'reverb' | 'master' | 'routing') => {
     setExpandedSection(prev => prev === section ? null : section);
   }, []);
 
@@ -383,97 +375,6 @@ export function FXPanel({
 
   return (
     <div className="fx-panel">
-      {/* Track Sends Section */}
-      <div className="fx-section">
-        <div className="fx-section-header" onClick={() => toggleSection('sends')}>
-          <span className="fx-expand-icon">{expandedSection === 'sends' ? '▼' : '▶'}</span>
-          <span className="fx-section-title">TRACK SENDS</span>
-          <span className="fx-track-id">{trackId}</span>
-        </div>
-
-        {expandedSection === 'sends' && channelParams && (
-          <div className="fx-section-content">
-            <div className="fx-sends-row">
-              <div className="fx-send">
-                <ParamSlider
-                  label="Volume"
-                  value={channelParams.volume}
-                  min={0}
-                  max={1}
-                  onChange={(v) => onChannelChange(trackId, { volume: v })}
-                />
-              </div>
-
-              <div className="fx-send">
-                <ParamSlider
-                  label="Pan"
-                  value={channelParams.pan}
-                  min={-1}
-                  max={1}
-                  onChange={(v) => onChannelChange(trackId, { pan: v })}
-                />
-              </div>
-            </div>
-
-            <div className="fx-sends-row">
-              <div className="fx-send">
-                <ParamSlider
-                  label="Mim 1 Send"
-                  value={channelParams.delaySend}
-                  min={0}
-                  max={1}
-                  onChange={(v) => onChannelChange(trackId, { delaySend: v })}
-                />
-              </div>
-
-              <div className="fx-send">
-                <ParamSlider
-                  label="Mim 2 Send"
-                  value={channelParams.delaySend2}
-                  min={0}
-                  max={1}
-                  onChange={(v) => onChannelChange(trackId, { delaySend2: v })}
-                />
-              </div>
-            </div>
-
-            <div className="fx-sends-row">
-              <div className="fx-send">
-                <ParamSlider
-                  label="Mim 3 Send"
-                  value={channelParams.delaySend3}
-                  min={0}
-                  max={1}
-                  onChange={(v) => onChannelChange(trackId, { delaySend3: v })}
-                />
-              </div>
-
-              <div className="fx-send">
-                <ParamSlider
-                  label="Mim 4 Send"
-                  value={channelParams.delaySend4}
-                  min={0}
-                  max={1}
-                  onChange={(v) => onChannelChange(trackId, { delaySend4: v })}
-                />
-              </div>
-            </div>
-
-            <div className="fx-sends-row">
-              <div className="fx-send">
-                <ParamSlider
-                  label="Reverb Send"
-                  value={channelParams.reverbSend}
-                  min={0}
-                  max={1}
-                  onChange={(v) => onChannelChange(trackId, { reverbSend: v })}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Mimeophon 1 Section */}
       <MimeophonSection
         title="MIMEOPHON 1"

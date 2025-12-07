@@ -752,9 +752,6 @@ function App() {
               )}
               {mimeophonParams && mimeophonParams2 && mimeophonParams3 && mimeophonParams4 && reverbParams && masterParams && (
                 <FXPanel
-                  trackId={selectedTrack}
-                  channelParams={channelParams.get(selectedTrack) ?? null}
-                  onChannelChange={handleChannelChange}
                   mimeophonParams={mimeophonParams}
                   mimeophonParams2={mimeophonParams2}
                   mimeophonParams3={mimeophonParams3}
