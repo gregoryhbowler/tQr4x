@@ -32,7 +32,8 @@ export class MasterClock {
     if (this.isInitialized) return;
 
     // Load the worklet module from public folder
-    await this.audioContext.audioWorklet.addModule('/worklets/master-clock-processor.js');
+    const base = import.meta.env.BASE_URL || '/';
+    await this.audioContext.audioWorklet.addModule(`${base}worklets/master-clock-processor.js`);
 
     // Create the worklet node
     this.workletNode = new AudioWorkletNode(this.audioContext, 'master-clock-processor');

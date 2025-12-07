@@ -183,8 +183,9 @@ export class GrooveboxEngine {
       this.mixer.setBpm(this._bpm);
 
       // Register filter worklet processors
+      const base = import.meta.env.BASE_URL || '/';
       try {
-        await this.audioContext.audioWorklet.addModule('/filter-processors.js');
+        await this.audioContext.audioWorklet.addModule(`${base}filter-processors.js`);
         console.log('[Engine] Filter worklet processors registered');
         // Initialize filter worklets for existing channels
         await this.mixer.initFilterWorklets();

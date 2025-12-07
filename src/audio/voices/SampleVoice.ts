@@ -186,7 +186,8 @@ export class SampleVoice {
     if (this.granularWorkletReady) return;
 
     try {
-      await this.ctx.audioWorklet.addModule('/worklets/sample-processor.js');
+      const base = import.meta.env.BASE_URL || '/';
+      await this.ctx.audioWorklet.addModule(`${base}worklets/sample-processor.js`);
       this.granularWorklet = new AudioWorkletNode(this.ctx, 'sample-processor', {
         numberOfInputs: 0,
         numberOfOutputs: 1,

@@ -67,7 +67,8 @@ export class Reverb {
 
   private async initWorklet(): Promise<void> {
     try {
-      await this.ctx.audioWorklet.addModule('/worklets/zita-reverb-processor.js');
+      const base = import.meta.env.BASE_URL || '/';
+      await this.ctx.audioWorklet.addModule(`${base}worklets/zita-reverb-processor.js`);
 
       this.workletNode = new AudioWorkletNode(this.ctx, 'zita-reverb-processor', {
         numberOfInputs: 1,
