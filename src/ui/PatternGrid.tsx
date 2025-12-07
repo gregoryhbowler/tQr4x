@@ -70,6 +70,7 @@ export function PatternGrid({ trackId, trackName, isMelodic = false }: PatternGr
   const [currentStep, setCurrentStep] = useState(-1);
   const [selectedStep, setSelectedStep] = useState<number | null>(null);
   const [scaleConfig, setScaleConfig] = useState<ScaleConfig | null>(null);
+  const [trackOctave, setTrackOctave] = useState<number | undefined>(undefined);
   const [basslineStyle, setBasslineStyle] = useState<BasslineStyle>('acid');
   // P-lock edit mode state
   const [pLockEditState, setPLockEditState] = useState<ParamLockEditState>({ isActive: false, trackId: '', stepIndex: -1 });
@@ -79,14 +80,16 @@ export function PatternGrid({ trackId, trackName, isMelodic = false }: PatternGr
   // Get available bassline styles
   const basslineStyles = useMemo(() => engine.getBasslineStyles(), []);
 
-  // Generate note pool from scale config
+  // Generate note pool from scale config, using per-track octave if set
   const notePool = useMemo(() => {
     if (!scaleConfig) {
       // Default: 2 octaves of C minor starting at octave 2
       return generateNotePool({ root: 0, scale: 'minor', octave: 2 }, 2);
     }
-    return generateNotePool(scaleConfig, 2);
-  }, [scaleConfig]);
+    // Use per-track octave if set, otherwise use global scale's octave
+    const effectiveOctave = trackOctave !== undefined ? trackOctave : scaleConfig.octave;
+    return generateNotePool({ ...scaleConfig, octave: effectiveOctave }, 2);
+  }, [scaleConfig, trackOctave]);
 
   // Load pattern data and scale config
   const loadPattern = useCallback(() => {
@@ -99,6 +102,8 @@ export function PatternGrid({ trackId, trackName, isMelodic = false }: PatternGr
     if (isMelodic) {
       const scale = engine.getTrackScale(trackId);
       setScaleConfig(scale ?? null);
+      const octave = engine.getTrackOctave(trackId);
+      setTrackOctave(octave);
     }
   }, [trackId, isMelodic]);
 
@@ -171,14 +176,19 @@ export function PatternGrid({ trackId, trackName, isMelodic = false }: PatternGr
     };
   }, [trackId, loadPattern]);
 
-  // Poll for global scale config changes (since there's no event system for it)
-  // This ensures note pool updates when Transport changes scale/octave
-  // When octave changes, transpose all step notes accordingly
+  // Poll for global scale config and per-track octave changes
+  // This ensures note pool updates when Transport changes scale or TrackControls changes octave
+  // When global octave changes (and track doesn't have per-track octave), transpose all step notes
   useEffect(() => {
     if (!isMelodic) return;
 
     const checkScaleConfig = () => {
       const currentScale = engine.getTrackScale(trackId);
+      const currentTrackOctave = engine.getTrackOctave(trackId);
+
+      // Update track octave state
+      setTrackOctave(currentTrackOctave);
+
       if (currentScale) {
         setScaleConfig(prev => {
           // Check if scale config has changed
@@ -187,8 +197,9 @@ export function PatternGrid({ trackId, trackName, isMelodic = false }: PatternGr
               prev.scale !== currentScale.scale ||
               prev.octave !== currentScale.octave) {
 
-            // If octave changed, transpose all step notes
-            if (prev && prev.octave !== currentScale.octave) {
+            // Only transpose notes when global octave changes if track doesn't have per-track octave
+            // When per-track octave is set, changing global octave shouldn't affect this track's notes
+            if (prev && prev.octave !== currentScale.octave && currentTrackOctave === undefined) {
               const octaveDiff = (currentScale.octave - prev.octave) * 12;
               const pattern = engine.getCurrentPattern(trackId);
               if (pattern) {

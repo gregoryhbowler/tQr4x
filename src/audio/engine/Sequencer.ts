@@ -103,6 +103,7 @@ export interface PatternBankSnapshot {
 export interface TrackPerformance {
   drift: number;          // 0-1: note variation (0 = exact, 1 = fully random from scale)
   fill: number;           // -1 to 1: trigger density (-1 = none, 0 = as sequenced, 1 = all)
+  octaveRange?: number;   // Base octave for melodic tracks (default: uses global scale octave)
 }
 
 export interface Track {
@@ -418,6 +419,18 @@ export class Sequencer {
     if (track) {
       track.performance.fill = Math.max(-1, Math.min(1, fill));
     }
+  }
+
+  setTrackOctave(trackId: string, octave: number): void {
+    const track = this.tracks.get(trackId);
+    if (track) {
+      track.performance.octaveRange = Math.max(0, Math.min(6, octave));
+    }
+  }
+
+  getTrackOctave(trackId: string): number | undefined {
+    const track = this.tracks.get(trackId);
+    return track?.performance.octaveRange;
   }
 
   // Legacy per-track scale setter - now sets global scale

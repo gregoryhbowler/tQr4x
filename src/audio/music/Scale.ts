@@ -55,7 +55,10 @@ export function generateNotePool(
   if (!intervals) return [];
 
   const notes: number[] = [];
-  const baseNote = config.root + (config.octave * 12);
+  // MIDI note numbers: C-1 = 0, C0 = 12, C1 = 24, C2 = 36, C3 = 48, C4 = 60 (middle C)
+  // So for octave N, the base MIDI note is (N + 1) * 12
+  // e.g., octave 2 -> (2 + 1) * 12 = 36 = C2
+  const baseNote = config.root + ((config.octave + 1) * 12);
 
   for (let oct = 0; oct < octaveRange; oct++) {
     for (const interval of intervals) {

@@ -12,14 +12,19 @@ const CLOCK_DIVISION_OPTIONS: { value: ClockDivisionRatio; label: string }[] = [
   { value: '8/1', label: '8/1 (8x faster)' },
 ];
 
+// Octave options for per-track octave setting (0-6)
+const OCTAVE_OPTIONS = [0, 1, 2, 3, 4, 5, 6];
+
 interface TrackControlsProps {
   trackId: string;
   isMelodic: boolean;  // Show drift controls only for melodic tracks
+  onOctaveChange?: (octave: number) => void;  // Callback when track octave changes
 }
 
-export function TrackControls({ trackId, isMelodic }: TrackControlsProps) {
+export function TrackControls({ trackId, isMelodic, onOctaveChange }: TrackControlsProps) {
   const [performance, setPerformance] = useState<TrackPerformance>({ drift: 0, fill: 0 });
   const [clockConfig, setClockConfig] = useState<TrackClockConfig>({ useGlobalClock: true, division: '1/1' });
+  const [trackOctave, setTrackOctave] = useState<number | undefined>(undefined);
 
   // Load current values
   useEffect(() => {
@@ -27,6 +32,8 @@ export function TrackControls({ trackId, isMelodic }: TrackControlsProps) {
     if (perf) setPerformance(perf);
     const clock = engine.getTrackClockConfig(trackId);
     if (clock) setClockConfig(clock);
+    const octave = engine.getTrackOctave(trackId);
+    setTrackOctave(octave);
   }, [trackId]);
 
   const handleDriftChange = useCallback((drift: number) => {
@@ -52,6 +59,12 @@ export function TrackControls({ trackId, isMelodic }: TrackControlsProps) {
   const handleResyncTrack = useCallback(() => {
     engine.resyncTrack(trackId);
   }, [trackId]);
+
+  const handleOctaveChange = useCallback((octave: number) => {
+    setTrackOctave(octave);
+    engine.setTrackOctave(trackId, octave);
+    onOctaveChange?.(octave);
+  }, [trackId, onOctaveChange]);
 
   // Format fill value for display (-100% to +100%)
   const fillDisplay = performance.fill === 0
@@ -84,25 +97,48 @@ export function TrackControls({ trackId, isMelodic }: TrackControlsProps) {
       </div>
 
       {isMelodic && (
-        <div className="control-group">
-          <div className="control-item">
-            <label>
-              <span className="control-label">DRIFT</span>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={performance.drift}
-                onChange={(e) => handleDriftChange(parseFloat(e.target.value))}
-              />
-              <span className="control-value">{Math.round(performance.drift * 100)}%</span>
-            </label>
-            <div className="control-hint">
-              Note variation (0% = exact, 100% = random from scale)
+        <>
+          <div className="control-group">
+            <div className="control-item">
+              <label>
+                <span className="control-label">OCTAVE</span>
+                <select
+                  value={trackOctave ?? ''}
+                  onChange={(e) => handleOctaveChange(parseInt(e.target.value, 10))}
+                  className="octave-select"
+                >
+                  <option value="" disabled>Global</option>
+                  {OCTAVE_OPTIONS.map(oct => (
+                    <option key={oct} value={oct}>Oct {oct}</option>
+                  ))}
+                </select>
+                <span className="control-value">{trackOctave !== undefined ? `C${trackOctave}` : 'Global'}</span>
+              </label>
+              <div className="control-hint">
+                Per-track octave range (overrides global octave)
+              </div>
             </div>
           </div>
-        </div>
+          <div className="control-group">
+            <div className="control-item">
+              <label>
+                <span className="control-label">DRIFT</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={performance.drift}
+                  onChange={(e) => handleDriftChange(parseFloat(e.target.value))}
+                />
+                <span className="control-value">{Math.round(performance.drift * 100)}%</span>
+              </label>
+              <div className="control-hint">
+                Note variation (0% = exact, 100% = random from scale)
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       <div className="control-group clock-division-group">

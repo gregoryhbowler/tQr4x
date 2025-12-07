@@ -876,6 +876,14 @@ export class GrooveboxEngine {
     this.sequencer?.setTrackFill(trackId, fill);
   }
 
+  setTrackOctave(trackId: string, octave: number): void {
+    this.sequencer?.setTrackOctave(trackId, octave);
+  }
+
+  getTrackOctave(trackId: string): number | undefined {
+    return this.sequencer?.getTrackOctave(trackId);
+  }
+
   // Legacy per-track scale setter - now sets global scale
   setTrackScale(trackId: string, scale: ScaleConfig): void {
     this.sequencer?.setTrackScale(trackId, scale);
