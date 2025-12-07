@@ -15,31 +15,17 @@ npx tsc --noEmit # Type check without emitting
 
 ## Git & Deployment Workflow
 
-**Important:** This project publishes from the `docs/` folder via GitHub Pages.
+**Deployment is automatic.** GitHub Actions builds and deploys on every push to main.
 
 ### Before pushing changes:
 
 1. Run TypeScript check: `npx tsc --noEmit`
-2. Build the project: `npm run build`
-3. Stage all changes including docs/: `git add -A`
-4. Commit and push
+2. Commit and push
 
-### After making code changes:
-
-If only source code changed (no deployment needed):
-```bash
-git add src/
-git commit -m "Your message"
-git push
-```
-
-If you need to update the live site:
-```bash
-npm run build
-git add -A
-git commit -m "Your message"
-git push
-```
+The workflow will automatically:
+- Install dependencies
+- Build the project
+- Deploy to GitHub Pages from the `docs/` folder
 
 ### Commit message format
 
@@ -48,6 +34,7 @@ Use conventional commits with descriptive messages:
 - `Add: description` for new features
 - `Docs: description` for documentation
 - `Refactor: description` for code restructuring
+- `Build: description` for build/deployment changes
 
 ## Architecture
 
@@ -55,6 +42,7 @@ Use conventional commits with descriptive messages:
 - `src/ui/` - React components
 - `docs/` - Built output for GitHub Pages (do not edit directly)
 - `public/worklets/` - AudioWorklet processors
+- `.github/workflows/deploy.yml` - GitHub Actions deployment workflow
 
 ## Key Audio Components
 
