@@ -758,7 +758,7 @@ export class ComplexMorphVoice {
     });
   }
 
-  async trigger(_time: number, velocity: number = 1, paramLocks?: Partial<ComplexMorphParams>): Promise<void> {
+  async trigger(_time: number, velocity: number = 1, paramLocks?: Partial<ComplexMorphParams> | Record<string, unknown>): Promise<void> {
     await this.ensureReady();
 
     if (!this.workletNode) {
@@ -768,11 +768,25 @@ export class ComplexMorphVoice {
 
     if (paramLocks) {
       const tempParams = deepClone(this.params);
-      if (paramLocks.opA) tempParams.opA = { ...tempParams.opA, ...paramLocks.opA };
-      if (paramLocks.opB) tempParams.opB = { ...tempParams.opB, ...paramLocks.opB };
-      if (paramLocks.opC) tempParams.opC = { ...tempParams.opC, ...paramLocks.opC };
-      const { opA, opB, opC, ...topLevel } = paramLocks;
-      Object.assign(tempParams, topLevel);
+      const locks = paramLocks as Record<string, unknown>;
+
+      // Handle nested structure (from direct ComplexMorphParams)
+      if (locks.opA && typeof locks.opA === 'object') {
+        tempParams.opA = { ...tempParams.opA, ...(locks.opA as Partial<ComplexMorphOperator>) };
+      }
+      if (locks.opB && typeof locks.opB === 'object') {
+        tempParams.opB = { ...tempParams.opB, ...(locks.opB as Partial<ComplexMorphOperator>) };
+      }
+      if (locks.opC && typeof locks.opC === 'object') {
+        tempParams.opC = { ...tempParams.opC, ...(locks.opC as Partial<ComplexMorphOperator>) };
+      }
+
+      // Handle flat p-lock keys (from modulation/sequencer p-lock system)
+      // These are keyed like 'complexOpAPitchPeriod' and need to be applied to nested paths
+      for (const [key, value] of Object.entries(locks)) {
+        if (typeof value !== 'number') continue;
+        this.applyFlatParamLock(tempParams, key, value);
+      }
 
       const originalParams = this.params;
       this.params = tempParams;
@@ -784,6 +798,111 @@ export class ComplexMorphVoice {
       type: 'trigger',
       velocity
     });
+  }
+
+  /**
+   * Apply a flat p-lock key to the nested params structure
+   * Maps keys like 'complexOpAPitchPeriod' to nested paths like opA.envelopes.pitch.period
+   */
+  private applyFlatParamLock(params: ComplexMorphParams, key: string, value: number): void {
+    // Top-level params
+    if (key === 'carrierFreq' || key === 'complexCarrierFreq') {
+      params.carrierFreq = value;
+    } else if (key === 'notchFreq' || key === 'complexNotchFreq') {
+      params.notchFreq = value;
+    } else if (key === 'notchQ' || key === 'complexNotchQ') {
+      params.notchQ = value;
+    } else if (key === 'outputLevel' || key === 'complexOutputLevel') {
+      params.outputLevel = value;
+    } else if (key === 'notchRange' || key === 'complexNotchRange') {
+      params.notchRange = value;
+    } else if (key === 'carrierPitchRange' || key === 'complexCarrierPitchRange') {
+      params.carrierPitchRange = value;
+    }
+    // Carrier pitch envelope
+    else if (key === 'complexCarrierPitchPeriod') {
+      params.carrierPitchEnv.period = value;
+    } else if (key === 'complexCarrierPitchAmount') {
+      params.carrierPitchEnv.amount = value;
+    }
+    // Amp envelope
+    else if (key === 'complexAmpPeriod') {
+      params.ampEnv.period = value;
+    } else if (key === 'complexAmpAmount') {
+      params.ampEnv.amount = value;
+    }
+    // Notch envelope
+    else if (key === 'complexNotchEnvPeriod') {
+      params.notchEnv.period = value;
+    } else if (key === 'complexNotchEnvAmount') {
+      params.notchEnv.amount = value;
+    }
+    // Operator A envelopes
+    else if (key === 'complexOpAPitchPeriod') {
+      params.opA.envelopes.pitch.period = value;
+    } else if (key === 'complexOpAPitchAmount') {
+      params.opA.envelopes.pitch.amount = value;
+    } else if (key === 'complexOpAPitchRange') {
+      params.opA.envelopes.pitchRange = value;
+    } else if (key === 'complexOpAIndexPeriod') {
+      params.opA.envelopes.index.period = value;
+    } else if (key === 'complexOpAIndexAmount') {
+      params.opA.envelopes.index.amount = value;
+    } else if (key === 'complexOpAIndexMin') {
+      params.opA.envelopes.indexMin = value;
+    } else if (key === 'complexOpAIndexMax') {
+      params.opA.envelopes.indexMax = value;
+    } else if (key === 'complexOpALevelPeriod') {
+      params.opA.envelopes.level.period = value;
+    } else if (key === 'complexOpALevelAmount') {
+      params.opA.envelopes.level.amount = value;
+    } else if (key === 'complexOpALevelMax') {
+      params.opA.envelopes.levelMax = value;
+    }
+    // Operator B envelopes
+    else if (key === 'complexOpBPitchPeriod') {
+      params.opB.envelopes.pitch.period = value;
+    } else if (key === 'complexOpBPitchAmount') {
+      params.opB.envelopes.pitch.amount = value;
+    } else if (key === 'complexOpBPitchRange') {
+      params.opB.envelopes.pitchRange = value;
+    } else if (key === 'complexOpBIndexPeriod') {
+      params.opB.envelopes.index.period = value;
+    } else if (key === 'complexOpBIndexAmount') {
+      params.opB.envelopes.index.amount = value;
+    } else if (key === 'complexOpBIndexMin') {
+      params.opB.envelopes.indexMin = value;
+    } else if (key === 'complexOpBIndexMax') {
+      params.opB.envelopes.indexMax = value;
+    } else if (key === 'complexOpBLevelPeriod') {
+      params.opB.envelopes.level.period = value;
+    } else if (key === 'complexOpBLevelAmount') {
+      params.opB.envelopes.level.amount = value;
+    } else if (key === 'complexOpBLevelMax') {
+      params.opB.envelopes.levelMax = value;
+    }
+    // Operator C envelopes
+    else if (key === 'complexOpCPitchPeriod') {
+      params.opC.envelopes.pitch.period = value;
+    } else if (key === 'complexOpCPitchAmount') {
+      params.opC.envelopes.pitch.amount = value;
+    } else if (key === 'complexOpCPitchRange') {
+      params.opC.envelopes.pitchRange = value;
+    } else if (key === 'complexOpCIndexPeriod') {
+      params.opC.envelopes.index.period = value;
+    } else if (key === 'complexOpCIndexAmount') {
+      params.opC.envelopes.index.amount = value;
+    } else if (key === 'complexOpCIndexMin') {
+      params.opC.envelopes.indexMin = value;
+    } else if (key === 'complexOpCIndexMax') {
+      params.opC.envelopes.indexMax = value;
+    } else if (key === 'complexOpCLevelPeriod') {
+      params.opC.envelopes.level.period = value;
+    } else if (key === 'complexOpCLevelAmount') {
+      params.opC.envelopes.level.amount = value;
+    } else if (key === 'complexOpCLevelMax') {
+      params.opC.envelopes.levelMax = value;
+    }
   }
 
   async release(): Promise<void> {

@@ -53,6 +53,19 @@ export type VoiceDestination =
   | 'oceanHpfFreq' | 'oceanLpfFreq' | 'oceanVolume'
   // Complex Morph voice parameters
   | 'complexCarrierFreq' | 'complexNotchFreq' | 'complexNotchQ' | 'complexOutputLevel'
+  // Complex Morph envelope parameters (period, amount, and range for each cycling envelope)
+  | 'complexCarrierPitchPeriod' | 'complexCarrierPitchAmount' | 'complexCarrierPitchRange'
+  | 'complexOpAPitchPeriod' | 'complexOpAPitchAmount' | 'complexOpAPitchRange'
+  | 'complexOpAIndexPeriod' | 'complexOpAIndexAmount' | 'complexOpAIndexMin' | 'complexOpAIndexMax'
+  | 'complexOpALevelPeriod' | 'complexOpALevelAmount' | 'complexOpALevelMax'
+  | 'complexOpBPitchPeriod' | 'complexOpBPitchAmount' | 'complexOpBPitchRange'
+  | 'complexOpBIndexPeriod' | 'complexOpBIndexAmount' | 'complexOpBIndexMin' | 'complexOpBIndexMax'
+  | 'complexOpBLevelPeriod' | 'complexOpBLevelAmount' | 'complexOpBLevelMax'
+  | 'complexOpCPitchPeriod' | 'complexOpCPitchAmount' | 'complexOpCPitchRange'
+  | 'complexOpCIndexPeriod' | 'complexOpCIndexAmount' | 'complexOpCIndexMin' | 'complexOpCIndexMax'
+  | 'complexOpCLevelPeriod' | 'complexOpCLevelAmount' | 'complexOpCLevelMax'
+  | 'complexAmpPeriod' | 'complexAmpAmount'
+  | 'complexNotchEnvPeriod' | 'complexNotchEnvAmount' | 'complexNotchRange'
   // Plaits voice parameters (engines 0-15)
   | 'plaitsHarmonics' | 'plaitsTimbre' | 'plaitsMorph'
   | 'plaitsFM' | 'plaitsDecay' | 'plaitsFade';
@@ -152,6 +165,20 @@ export const DESTINATION_CATEGORIES: Record<string, ModulationDestination[]> = {
   'Voice - Granular': ['grainDensity', 'grainLength', 'grainSpread', 'grainPan'],
   'Voice - Ocean': ['oceanPitch', 'oceanGrainSize', 'oceanDensity', 'oceanPosition', 'oceanSpread', 'oceanHpfFreq', 'oceanLpfFreq', 'oceanVolume'],
   'Voice - Complex Morph': ['complexCarrierFreq', 'complexNotchFreq', 'complexNotchQ', 'complexOutputLevel'],
+  'Voice - Complex Morph Envelopes': [
+    'complexCarrierPitchPeriod', 'complexCarrierPitchAmount', 'complexCarrierPitchRange',
+    'complexOpAPitchPeriod', 'complexOpAPitchAmount', 'complexOpAPitchRange',
+    'complexOpAIndexPeriod', 'complexOpAIndexAmount', 'complexOpAIndexMin', 'complexOpAIndexMax',
+    'complexOpALevelPeriod', 'complexOpALevelAmount', 'complexOpALevelMax',
+    'complexOpBPitchPeriod', 'complexOpBPitchAmount', 'complexOpBPitchRange',
+    'complexOpBIndexPeriod', 'complexOpBIndexAmount', 'complexOpBIndexMin', 'complexOpBIndexMax',
+    'complexOpBLevelPeriod', 'complexOpBLevelAmount', 'complexOpBLevelMax',
+    'complexOpCPitchPeriod', 'complexOpCPitchAmount', 'complexOpCPitchRange',
+    'complexOpCIndexPeriod', 'complexOpCIndexAmount', 'complexOpCIndexMin', 'complexOpCIndexMax',
+    'complexOpCLevelPeriod', 'complexOpCLevelAmount', 'complexOpCLevelMax',
+    'complexAmpPeriod', 'complexAmpAmount',
+    'complexNotchEnvPeriod', 'complexNotchEnvAmount', 'complexNotchRange'
+  ],
   'Voice - Other': ['glideTime'],
   'Voice - Plaits': ['plaitsHarmonics', 'plaitsTimbre', 'plaitsMorph', 'plaitsFM', 'plaitsDecay', 'plaitsFade'],
 
@@ -194,7 +221,22 @@ export const VOICE_TYPE_DESTINATIONS: Record<string, VoiceDestination[]> = {
   'fm-drum': ['pitch', 'pitchEnvAmount', 'pitchEnvDecay', 'op1Ratio', 'op1Index', 'op1Feedback', 'op2Ratio', 'op2Index', 'op2ToOp1', 'ampAttack', 'ampDecay', 'noiseMix', 'noiseDecay', 'noiseFilterFreq'],
   'fm-melodic': ['fmIndex', 'fmIndexEnvAmount', 'ampAttack', 'ampDecay', 'glideTime'],
   'noise': ['decay', 'metalAmount', 'clickAmount', 'noiseFilterQ'],
-  'complex-morph': ['complexCarrierFreq', 'complexNotchFreq', 'complexNotchQ', 'complexOutputLevel', 'ampAttack', 'ampDecay'],
+  'complex-morph': [
+    'complexCarrierFreq', 'complexNotchFreq', 'complexNotchQ', 'complexOutputLevel',
+    // Envelope parameters
+    'complexCarrierPitchPeriod', 'complexCarrierPitchAmount', 'complexCarrierPitchRange',
+    'complexOpAPitchPeriod', 'complexOpAPitchAmount', 'complexOpAPitchRange',
+    'complexOpAIndexPeriod', 'complexOpAIndexAmount', 'complexOpAIndexMin', 'complexOpAIndexMax',
+    'complexOpALevelPeriod', 'complexOpALevelAmount', 'complexOpALevelMax',
+    'complexOpBPitchPeriod', 'complexOpBPitchAmount', 'complexOpBPitchRange',
+    'complexOpBIndexPeriod', 'complexOpBIndexAmount', 'complexOpBIndexMin', 'complexOpBIndexMax',
+    'complexOpBLevelPeriod', 'complexOpBLevelAmount', 'complexOpBLevelMax',
+    'complexOpCPitchPeriod', 'complexOpCPitchAmount', 'complexOpCPitchRange',
+    'complexOpCIndexPeriod', 'complexOpCIndexAmount', 'complexOpCIndexMin', 'complexOpCIndexMax',
+    'complexOpCLevelPeriod', 'complexOpCLevelAmount', 'complexOpCLevelMax',
+    'complexAmpPeriod', 'complexAmpAmount',
+    'complexNotchEnvPeriod', 'complexNotchEnvAmount', 'complexNotchRange'
+  ],
   'sample': ['samplePitch', 'sampleStartPoint', 'sampleLpCutoff', 'sampleLpResonance', 'sampleHpCutoff', 'sampleHpResonance', 'ampAttack', 'ampDecay', 'sampleSustain', 'sampleRelease', 'sampleScanSpeed', 'grainDensity', 'grainLength', 'grainSpread', 'grainPan'],
   'ocean': ['oceanPitch', 'oceanGrainSize', 'oceanDensity', 'oceanPosition', 'oceanSpread', 'oceanHpfFreq', 'oceanLpfFreq', 'oceanVolume'],
   // Plaits melodic engines (0-7)
@@ -288,6 +330,57 @@ export const DESTINATION_RANGES: Record<ModulationDestination, [number, number, 
   complexNotchFreq: [20, 15000, 1000], // Hz
   complexNotchQ: [0.1, 20, 1],         // Q
   complexOutputLevel: [0, 1, 0.8],     // Level
+
+  // Voice - Complex Morph Envelope parameters
+  // Carrier pitch envelope
+  complexCarrierPitchPeriod: [0.01, 10, 1],  // Seconds
+  complexCarrierPitchAmount: [-1, 1, 1],     // Bipolar depth
+  complexCarrierPitchRange: [0, 500, 50],    // Hz
+
+  // Operator A envelopes
+  complexOpAPitchPeriod: [0.01, 10, 1],
+  complexOpAPitchAmount: [-1, 1, 1],
+  complexOpAPitchRange: [0, 500, 100],
+  complexOpAIndexPeriod: [0.01, 10, 1],
+  complexOpAIndexAmount: [-1, 1, 1],
+  complexOpAIndexMin: [0, 20, 0],
+  complexOpAIndexMax: [0, 30, 10],
+  complexOpALevelPeriod: [0.01, 10, 1],
+  complexOpALevelAmount: [-1, 1, 1],
+  complexOpALevelMax: [0, 2, 1],
+
+  // Operator B envelopes
+  complexOpBPitchPeriod: [0.01, 10, 1],
+  complexOpBPitchAmount: [-1, 1, 1],
+  complexOpBPitchRange: [0, 500, 100],
+  complexOpBIndexPeriod: [0.01, 10, 1],
+  complexOpBIndexAmount: [-1, 1, 1],
+  complexOpBIndexMin: [0, 20, 0],
+  complexOpBIndexMax: [0, 30, 10],
+  complexOpBLevelPeriod: [0.01, 10, 1],
+  complexOpBLevelAmount: [-1, 1, 1],
+  complexOpBLevelMax: [0, 2, 1],
+
+  // Operator C envelopes
+  complexOpCPitchPeriod: [0.01, 10, 1],
+  complexOpCPitchAmount: [-1, 1, 1],
+  complexOpCPitchRange: [0, 500, 100],
+  complexOpCIndexPeriod: [0.01, 10, 1],
+  complexOpCIndexAmount: [-1, 1, 1],
+  complexOpCIndexMin: [0, 20, 0],
+  complexOpCIndexMax: [0, 30, 10],
+  complexOpCLevelPeriod: [0.01, 10, 1],
+  complexOpCLevelAmount: [-1, 1, 1],
+  complexOpCLevelMax: [0, 2, 1],
+
+  // Amp envelope
+  complexAmpPeriod: [0.01, 10, 1],
+  complexAmpAmount: [-1, 1, 1],
+
+  // Notch filter envelope
+  complexNotchEnvPeriod: [0.01, 10, 1],
+  complexNotchEnvAmount: [-1, 1, 1],
+  complexNotchRange: [0, 2000, 600],        // Hz
 
   // Voice - Ocean (granular synthesis)
   oceanPitch: [-24, 24, 0],           // Semitones

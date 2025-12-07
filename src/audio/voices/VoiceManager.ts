@@ -1019,11 +1019,52 @@ export class VoiceManager {
           filterQ: 'notchQ',
           complexNotchFreq: 'notchFreq',
           complexNotchQ: 'notchQ',
-          // Envelope
-          ampAttack: 'attackTime',
-          ampDecay: 'releaseTime',
           // Output
-          complexOutputLevel: 'outputLevel'
+          complexOutputLevel: 'outputLevel',
+          // Carrier pitch envelope
+          complexCarrierPitchPeriod: 'carrierPitchEnv.period',
+          complexCarrierPitchAmount: 'carrierPitchEnv.amount',
+          complexCarrierPitchRange: 'carrierPitchRange',
+          // Operator A envelopes
+          complexOpAPitchPeriod: 'opA.envelopes.pitch.period',
+          complexOpAPitchAmount: 'opA.envelopes.pitch.amount',
+          complexOpAPitchRange: 'opA.envelopes.pitchRange',
+          complexOpAIndexPeriod: 'opA.envelopes.index.period',
+          complexOpAIndexAmount: 'opA.envelopes.index.amount',
+          complexOpAIndexMin: 'opA.envelopes.indexMin',
+          complexOpAIndexMax: 'opA.envelopes.indexMax',
+          complexOpALevelPeriod: 'opA.envelopes.level.period',
+          complexOpALevelAmount: 'opA.envelopes.level.amount',
+          complexOpALevelMax: 'opA.envelopes.levelMax',
+          // Operator B envelopes
+          complexOpBPitchPeriod: 'opB.envelopes.pitch.period',
+          complexOpBPitchAmount: 'opB.envelopes.pitch.amount',
+          complexOpBPitchRange: 'opB.envelopes.pitchRange',
+          complexOpBIndexPeriod: 'opB.envelopes.index.period',
+          complexOpBIndexAmount: 'opB.envelopes.index.amount',
+          complexOpBIndexMin: 'opB.envelopes.indexMin',
+          complexOpBIndexMax: 'opB.envelopes.indexMax',
+          complexOpBLevelPeriod: 'opB.envelopes.level.period',
+          complexOpBLevelAmount: 'opB.envelopes.level.amount',
+          complexOpBLevelMax: 'opB.envelopes.levelMax',
+          // Operator C envelopes
+          complexOpCPitchPeriod: 'opC.envelopes.pitch.period',
+          complexOpCPitchAmount: 'opC.envelopes.pitch.amount',
+          complexOpCPitchRange: 'opC.envelopes.pitchRange',
+          complexOpCIndexPeriod: 'opC.envelopes.index.period',
+          complexOpCIndexAmount: 'opC.envelopes.index.amount',
+          complexOpCIndexMin: 'opC.envelopes.indexMin',
+          complexOpCIndexMax: 'opC.envelopes.indexMax',
+          complexOpCLevelPeriod: 'opC.envelopes.level.period',
+          complexOpCLevelAmount: 'opC.envelopes.level.amount',
+          complexOpCLevelMax: 'opC.envelopes.levelMax',
+          // Amp envelope
+          complexAmpPeriod: 'ampEnv.period',
+          complexAmpAmount: 'ampEnv.amount',
+          // Notch filter envelope
+          complexNotchEnvPeriod: 'notchEnv.period',
+          complexNotchEnvAmount: 'notchEnv.amount',
+          complexNotchRange: 'notchRange'
         };
       case 'sample':
         return {
