@@ -7,9 +7,13 @@ const SCALE_NAMES = Object.keys(SCALE_INTERVALS);
 interface TransportProps {
   onSavePreset?: () => PresetState | null;
   onLoadPreset?: (preset: PresetState) => void;
+  /** Whether the mixer view is currently shown */
+  mixerOpen?: boolean;
+  /** Callback to toggle mixer view */
+  onMixerToggle?: () => void;
 }
 
-export function Transport({ onSavePreset, onLoadPreset }: TransportProps) {
+export function Transport({ onSavePreset, onLoadPreset, mixerOpen, onMixerToggle }: TransportProps) {
   const [engineState, setEngineState] = useState<EngineState>('uninitialized');
   const [bpm, setBpm] = useState(engine.bpm);
   const [swing, setSwing] = useState(engine.swing);
@@ -312,6 +316,18 @@ export function Transport({ onSavePreset, onLoadPreset }: TransportProps) {
           </button>
         )}
       </div>
+
+      {onMixerToggle && (
+        <div className="transport-mixer">
+          <button
+            className={`transport-btn mixer-btn ${mixerOpen ? 'active' : ''}`}
+            onClick={onMixerToggle}
+            title={mixerOpen ? 'Close mixer' : 'Open mixer'}
+          >
+            {mixerOpen ? 'CLOSE MIXER' : 'MIXER'}
+          </button>
+        </div>
+      )}
 
       <div className="transport-preset">
         <input

@@ -10,3 +10,4 @@ export { ModulationPanel } from './ModulationPanel';
 export { ComplexMorphPanel } from './ComplexMorphPanel';
 export { SamplePanel } from './SamplePanel';
 export { OceanPanel } from './OceanPanel';
+export { MixerView } from './MixerView';

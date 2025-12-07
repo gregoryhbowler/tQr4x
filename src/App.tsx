@@ -13,7 +13,7 @@ import type { MasterBusParams } from './audio/fx/MasterBus';
 import type { ChannelParams, FXCrossSends } from './audio/fx/Mixer';
 import { DEFAULT_FX_CROSS_SENDS } from './audio/fx/Mixer';
 import type { LFOParams, ModRoute, RandomIntensity, EnvelopeModulatorParams } from './audio/mod';
-import { Transport, PatternGrid, PatternBank, PatternSequencer, VoicePanel, TrackControls, FXPanel, ModulationPanel, ComplexMorphPanel, SamplePanel, OceanPanel } from './ui';
+import { Transport, PatternGrid, PatternBank, PatternSequencer, VoicePanel, TrackControls, FXPanel, ModulationPanel, ComplexMorphPanel, SamplePanel, OceanPanel, MixerView } from './ui';
 import './App.css';
 
 console.log('[App] Module loaded, engine:', engine);
@@ -73,6 +73,10 @@ function App() {
 
   // P-lock edit mode state - used to trigger re-renders when edit mode changes
   const [, setPLockEditState] = useState<ParamLockEditState>({ isActive: false, trackId: '', stepIndex: -1 });
+
+  // Mixer view state
+  const [mixerOpen, setMixerOpen] = useState(false);
+  const [mixerRefreshKey, setMixerRefreshKey] = useState(0);
 
   useEffect(() => {
     const init = async () => {
@@ -565,6 +569,13 @@ function App() {
       }
     }
     setChannelParams(channels);
+    // Also refresh mixer view
+    setMixerRefreshKey(prev => prev + 1);
+  }, []);
+
+  // Mixer toggle handler
+  const handleMixerToggle = useCallback(() => {
+    setMixerOpen(prev => !prev);
   }, []);
 
   // Preset save/load handlers
@@ -648,8 +659,19 @@ function App() {
           <Transport
             onSavePreset={handleSavePreset}
             onLoadPreset={handleLoadPreset}
+            mixerOpen={mixerOpen}
+            onMixerToggle={handleMixerToggle}
           />
         </section>
+
+        {mixerOpen && (
+          <section className="mixer-section">
+            <MixerView
+              tracks={tracks}
+              refreshKey={mixerRefreshKey}
+            />
+          </section>
+        )}
 
         <section className="pattern-bank-section">
           <PatternBank

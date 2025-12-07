@@ -64,11 +64,17 @@ export function PatternBank({ onVoiceConfigsRefresh, onChannelParamsRefresh }: P
 
   // Handle slot click
   const handleSlotClick = useCallback((slot: number) => {
+    const previousSlot = engine.getActivePatternSlot();
     engine.setActivePatternSlot(slot);
     setActiveSlot(slot);
     // Close context menu if open
     setContextMenu(prev => ({ ...prev, visible: false }));
-  }, []);
+    // Refresh UI if switching to a different slot (voice/channel configs may have changed)
+    if (slot !== previousSlot) {
+      onVoiceConfigsRefresh?.();
+      onChannelParamsRefresh?.();
+    }
+  }, [onVoiceConfigsRefresh, onChannelParamsRefresh]);
 
   // Handle right-click for context menu
   const handleContextMenu = useCallback((e: React.MouseEvent, slot: number) => {

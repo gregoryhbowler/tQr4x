@@ -9,6 +9,11 @@ import { type TickEvent, MasterClock } from './MasterClock';
 import { applyNoteDrift, applyFillControl, type ScaleConfig } from '../music/Scale';
 import { paramLockManager } from './ParamLockManager';
 
+// Deep clone helper for ensuring pattern copies are fully independent
+function deepClone<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
+
 // Number of patterns in the pattern bank (Elektron-style)
 export const PATTERN_BANK_SIZE = 16;
 
@@ -106,6 +111,49 @@ export interface TrackPerformance {
   octaveRange?: number;   // Base octave for melodic tracks (default: uses global scale octave)
 }
 
+/**
+ * Voice configuration for a track within a pattern slot
+ */
+export interface SlotVoiceConfig {
+  voiceType: string;
+  preset?: string;
+  params?: Record<string, unknown>;
+  note?: number;
+}
+
+/**
+ * Channel configuration for a track within a pattern slot
+ */
+export interface SlotChannelConfig {
+  filter: unknown;
+  saturation: unknown;
+  delaySend: number;
+  delaySend2: number;
+  delaySend3: number;
+  delaySend4: number;
+  reverbSend: number;
+  volume: number;
+  pan: number;
+}
+
+/**
+ * Performance configuration for a track within a pattern slot
+ */
+export interface SlotPerformanceConfig {
+  performance: TrackPerformance;
+  clockConfig: TrackClockConfig;
+}
+
+/**
+ * Complete configuration for a pattern slot
+ * Each slot stores independent voice, channel, and performance settings per track
+ */
+export interface PatternSlotConfig {
+  trackConfigs: Map<string, SlotVoiceConfig>;
+  channelConfigs: Map<string, SlotChannelConfig>;
+  trackPerformance: Map<string, SlotPerformanceConfig>;
+}
+
 export interface Track {
   id: string;
   name: string;
@@ -166,6 +214,9 @@ export class Sequencer {
   private activePatternSlot: number = 1;  // Currently active pattern slot (1-16)
   private patternBankClipboard: PatternBankSnapshot | null = null;  // For copy/paste operations
   private patternSlotListeners: Set<(slot: number) => void> = new Set();
+
+  // Per-slot voice, channel, and performance storage (enables per-pattern voice types)
+  private patternSlotConfigs: Map<number, PatternSlotConfig> = new Map();
 
   // Pattern Sequencer (arranger) - for sequencing patterns
   private patternSequencerEnabled: boolean = false;
@@ -719,8 +770,131 @@ export class Sequencer {
     return () => this.patternSlotListeners.delete(callback);
   }
 
+  // ============================================
+  // Per-Slot Voice/Channel/Performance Storage
+  // ============================================
+
   /**
-   * Check if a pattern slot has any data (any track has triggers in that slot)
+   * Ensure a pattern slot has initialized storage
+   * If the slot hasn't been used yet, creates empty maps
+   */
+  private ensureSlotInitialized(slot: number): PatternSlotConfig {
+    if (!this.patternSlotConfigs.has(slot)) {
+      this.patternSlotConfigs.set(slot, {
+        trackConfigs: new Map(),
+        channelConfigs: new Map(),
+        trackPerformance: new Map(),
+      });
+    }
+    return this.patternSlotConfigs.get(slot)!;
+  }
+
+  /**
+   * Check if a slot has any stored configuration
+   */
+  hasSlotConfig(slot: number): boolean {
+    return this.patternSlotConfigs.has(slot);
+  }
+
+  /**
+   * Get voice config for a track in a specific slot
+   */
+  getSlotVoiceConfig(slot: number, trackId: string): SlotVoiceConfig | undefined {
+    const slotConfig = this.patternSlotConfigs.get(slot);
+    return slotConfig?.trackConfigs.get(trackId);
+  }
+
+  /**
+   * Set voice config for a track in a specific slot
+   */
+  setSlotVoiceConfig(slot: number, trackId: string, config: SlotVoiceConfig): void {
+    const slotConfig = this.ensureSlotInitialized(slot);
+    slotConfig.trackConfigs.set(trackId, deepClone(config));
+  }
+
+  /**
+   * Get channel config for a track in a specific slot
+   */
+  getSlotChannelConfig(slot: number, trackId: string): SlotChannelConfig | undefined {
+    const slotConfig = this.patternSlotConfigs.get(slot);
+    return slotConfig?.channelConfigs.get(trackId);
+  }
+
+  /**
+   * Set channel config for a track in a specific slot
+   */
+  setSlotChannelConfig(slot: number, trackId: string, config: SlotChannelConfig): void {
+    const slotConfig = this.ensureSlotInitialized(slot);
+    slotConfig.channelConfigs.set(trackId, deepClone(config));
+  }
+
+  /**
+   * Get performance config for a track in a specific slot
+   */
+  getSlotPerformanceConfig(slot: number, trackId: string): SlotPerformanceConfig | undefined {
+    const slotConfig = this.patternSlotConfigs.get(slot);
+    return slotConfig?.trackPerformance.get(trackId);
+  }
+
+  /**
+   * Set performance config for a track in a specific slot
+   */
+  setSlotPerformanceConfig(slot: number, trackId: string, config: SlotPerformanceConfig): void {
+    const slotConfig = this.ensureSlotInitialized(slot);
+    slotConfig.trackPerformance.set(trackId, deepClone(config));
+  }
+
+  /**
+   * Get all track IDs that have voice configs in a slot
+   */
+  getSlotTrackIds(slot: number): string[] {
+    const slotConfig = this.patternSlotConfigs.get(slot);
+    if (!slotConfig) return [];
+    return Array.from(slotConfig.trackConfigs.keys());
+  }
+
+  /**
+   * Check if a slot has voice config for a specific track
+   */
+  hasSlotVoiceConfig(slot: number, trackId: string): boolean {
+    const slotConfig = this.patternSlotConfigs.get(slot);
+    return slotConfig?.trackConfigs.has(trackId) ?? false;
+  }
+
+  /**
+   * Check if a slot has channel config for a specific track
+   */
+  hasSlotChannelConfig(slot: number, trackId: string): boolean {
+    const slotConfig = this.patternSlotConfigs.get(slot);
+    return slotConfig?.channelConfigs.has(trackId) ?? false;
+  }
+
+  /**
+   * Check if a slot has any voice configs stored
+   */
+  slotHasVoiceConfigs(slot: number): boolean {
+    const slotConfig = this.patternSlotConfigs.get(slot);
+    return slotConfig !== undefined && slotConfig.trackConfigs.size > 0;
+  }
+
+  /**
+   * Check if a slot has any channel configs stored
+   */
+  slotHasChannelConfigs(slot: number): boolean {
+    const slotConfig = this.patternSlotConfigs.get(slot);
+    return slotConfig !== undefined && slotConfig.channelConfigs.size > 0;
+  }
+
+  /**
+   * Check if a slot has any performance configs stored
+   */
+  slotHasPerformanceConfigs(slot: number): boolean {
+    const slotConfig = this.patternSlotConfigs.get(slot);
+    return slotConfig !== undefined && slotConfig.trackPerformance.size > 0;
+  }
+
+  /**
+   * Check if a pattern slot has any data at all (triggers, voice configs, channel configs)
    */
   isPatternSlotEmpty(slot: number): boolean {
     for (const track of this.tracks.values()) {
@@ -795,7 +969,7 @@ export class Sequencer {
           trackId: track.id,
           voiceType: voiceConfig.voiceType,
           preset: voiceConfig.preset,
-          params: voiceConfig.params ? { ...voiceConfig.params } : undefined,
+          params: voiceConfig.params ? deepClone(voiceConfig.params) : undefined,
           note: voiceConfig.note,
         });
       }
@@ -805,8 +979,8 @@ export class Sequencer {
       if (channelParams) {
         snapshot.channelConfigs.push({
           trackId: track.id,
-          filter: channelParams.filter,
-          saturation: channelParams.saturation,
+          filter: deepClone(channelParams.filter),
+          saturation: deepClone(channelParams.saturation),
           delaySend: channelParams.delaySend,
           delaySend2: channelParams.delaySend2,
           delaySend3: channelParams.delaySend3,
@@ -876,7 +1050,7 @@ export class Sequencer {
       setVoiceConfig(config.trackId, {
         voiceType: config.voiceType,
         preset: config.preset,
-        params: config.params ? { ...config.params } : undefined,
+        params: config.params ? deepClone(config.params) : undefined,
         note: config.note,
       });
     }
@@ -884,8 +1058,8 @@ export class Sequencer {
     // Restore channel configs
     for (const config of snapshot.channelConfigs) {
       setChannelParams(config.trackId, {
-        filter: config.filter,
-        saturation: config.saturation,
+        filter: deepClone(config.filter),
+        saturation: deepClone(config.saturation),
         delaySend: config.delaySend,
         delaySend2: config.delaySend2,
         delaySend3: config.delaySend3,

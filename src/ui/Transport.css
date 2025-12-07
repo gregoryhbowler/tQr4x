@@ -288,3 +288,27 @@
   border-color: #66b2ff;
   color: #000;
 }
+
+/* Mixer toggle */
+.transport-mixer {
+  display: flex;
+  align-items: center;
+}
+
+.mixer-btn {
+  background: #2a2a1a;
+  border-color: #4a4a2a;
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
+.mixer-btn:hover {
+  background: #3a3a2a;
+  border-color: #ff9933;
+}
+
+.mixer-btn.active {
+  background: #ff9933;
+  border-color: #ff9933;
+  color: #000;
+}

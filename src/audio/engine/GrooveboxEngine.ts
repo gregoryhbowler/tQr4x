@@ -608,9 +608,179 @@ export class GrooveboxEngine {
 
   /**
    * Set the active pattern bank slot and switch all tracks to that pattern
+   * This also saves current voice/channel/performance state to the current slot
+   * and applies the state from the new slot
    */
   setActivePatternSlot(slot: number): boolean {
-    return this.sequencer?.setActivePatternSlot(slot) ?? false;
+    if (!this.sequencer) return false;
+
+    const currentSlot = this.sequencer.getActivePatternSlot();
+    if (slot === currentSlot) return true; // Already on this slot
+
+    // 1. Capture current state to the current slot before switching
+    this.captureCurrentSlotState();
+
+    // 2. Switch the pattern slot in the sequencer
+    const success = this.sequencer.setActivePatternSlot(slot);
+    if (!success) return false;
+
+    // 3. Apply state from the new slot (if it has stored configs)
+    this.applySlotState(slot);
+
+    return true;
+  }
+
+  /**
+   * Capture current voice, channel, and performance state to the current slot
+   * Called before switching patterns to preserve the current state
+   */
+  private captureCurrentSlotState(): void {
+    if (!this.sequencer || !this.voiceManager || !this.mixer) return;
+
+    const currentSlot = this.sequencer.getActivePatternSlot();
+    const tracks = this.sequencer.getAllTracks();
+
+    for (const track of tracks) {
+      // Capture voice config
+      const voiceConfig = this.voiceManager.getVoiceConfig(track.id);
+      if (voiceConfig) {
+        this.sequencer.setSlotVoiceConfig(currentSlot, track.id, {
+          voiceType: voiceConfig.voiceType,
+          preset: voiceConfig.preset,
+          params: voiceConfig.params as Record<string, unknown> | undefined,
+          note: voiceConfig.note,
+        });
+      }
+
+      // Capture channel config
+      const channelParams = this.mixer.getChannelParams(track.id);
+      if (channelParams) {
+        this.sequencer.setSlotChannelConfig(currentSlot, track.id, {
+          filter: channelParams.filter,
+          saturation: channelParams.saturation,
+          delaySend: channelParams.delaySend,
+          delaySend2: channelParams.delaySend2,
+          delaySend3: channelParams.delaySend3,
+          delaySend4: channelParams.delaySend4,
+          reverbSend: channelParams.reverbSend,
+          volume: channelParams.volume,
+          pan: channelParams.pan,
+        });
+      }
+
+      // Capture performance config
+      this.sequencer.setSlotPerformanceConfig(currentSlot, track.id, {
+        performance: { ...track.performance },
+        clockConfig: { ...track.clockConfig },
+      });
+    }
+  }
+
+  /**
+   * Apply voice, channel, and performance state from a slot
+   * Called after switching patterns to restore the slot's state
+   * If the slot has no stored configs, inherit from current state (first visit)
+   */
+  private applySlotState(slot: number): void {
+    if (!this.sequencer || !this.voiceManager || !this.mixer) return;
+
+    const tracks = this.sequencer.getAllTracks();
+
+    // Check if this slot has any stored configs
+    // If not, this is the first visit - the current state becomes this slot's state
+    if (!this.sequencer.slotHasVoiceConfigs(slot)) {
+      // First visit to this slot - capture current state as this slot's initial state
+      this.captureSlotStateFromCurrent(slot);
+      return; // No need to apply - we just inherited current state
+    }
+
+    // Apply stored configs from the slot
+    for (const track of tracks) {
+      // Apply voice config
+      const voiceConfig = this.sequencer.getSlotVoiceConfig(slot, track.id);
+      if (voiceConfig) {
+        this.voiceManager.assignVoice({
+          trackId: track.id,
+          voiceType: voiceConfig.voiceType as VoiceType,
+          preset: voiceConfig.preset,
+          params: voiceConfig.params,
+        });
+        if (voiceConfig.note !== undefined) {
+          this.voiceManager.setTrackNote(track.id, voiceConfig.note);
+        }
+      }
+
+      // Apply channel config
+      const channelConfig = this.sequencer.getSlotChannelConfig(slot, track.id);
+      if (channelConfig) {
+        this.mixer.updateChannel(track.id, {
+          filter: channelConfig.filter as ChannelParams['filter'],
+          saturation: channelConfig.saturation as ChannelParams['saturation'],
+          delaySend: channelConfig.delaySend,
+          delaySend2: channelConfig.delaySend2,
+          delaySend3: channelConfig.delaySend3,
+          delaySend4: channelConfig.delaySend4,
+          reverbSend: channelConfig.reverbSend,
+          volume: channelConfig.volume,
+          pan: channelConfig.pan,
+        });
+      }
+
+      // Apply performance config
+      const perfConfig = this.sequencer.getSlotPerformanceConfig(slot, track.id);
+      if (perfConfig) {
+        this.sequencer.setTrackDrift(track.id, perfConfig.performance.drift);
+        this.sequencer.setTrackFill(track.id, perfConfig.performance.fill);
+        if (perfConfig.performance.octaveRange !== undefined) {
+          this.sequencer.setTrackOctave(track.id, perfConfig.performance.octaveRange);
+        }
+        this.sequencer.setTrackClockConfig(track.id, perfConfig.clockConfig);
+      }
+    }
+  }
+
+  /**
+   * Capture current state as a slot's initial state (for first-time slot visits)
+   */
+  private captureSlotStateFromCurrent(slot: number): void {
+    if (!this.sequencer || !this.voiceManager || !this.mixer) return;
+
+    const tracks = this.sequencer.getAllTracks();
+
+    for (const track of tracks) {
+      // Capture voice config
+      const voiceConfig = this.voiceManager.getVoiceConfig(track.id);
+      if (voiceConfig) {
+        this.sequencer.setSlotVoiceConfig(slot, track.id, {
+          voiceType: voiceConfig.voiceType,
+          preset: voiceConfig.preset,
+          params: voiceConfig.params as Record<string, unknown> | undefined,
+          note: voiceConfig.note,
+        });
+      }
+
+      // Capture channel config
+      const channelParams = this.mixer.getChannelParams(track.id);
+      if (channelParams) {
+        this.sequencer.setSlotChannelConfig(slot, track.id, {
+          filter: channelParams.filter,
+          saturation: channelParams.saturation,
+          delaySend: channelParams.delaySend,
+          delaySend2: channelParams.delaySend2,
+          delaySend3: channelParams.delaySend3,
+          delaySend4: channelParams.delaySend4,
+          reverbSend: channelParams.reverbSend,
+          volume: channelParams.volume,
+          pan: channelParams.pan,
+        });
+      }
+
+      // Capture performance config
+      this.sequencer.setSlotPerformanceConfig(slot, track.id, {
+        performance: { ...track.performance },
+        clockConfig: { ...track.clockConfig },
+      });
+    }
   }
 
   /**
@@ -642,10 +812,13 @@ export class GrooveboxEngine {
   copyPatternSlot(slot: number, mode: 'engines' | 'all'): boolean {
     if (!this.sequencer) return false;
 
-    return this.sequencer.copyPatternSlot(
-      slot,
-      mode,
-      (trackId) => {
+    const currentSlot = this.sequencer.getActivePatternSlot();
+
+    // If copying from the current slot, use live state
+    // If copying from a different slot, use stored slot configs
+    const getVoiceConfig = (trackId: string) => {
+      if (slot === currentSlot) {
+        // Use live state
         const config = this.voiceManager?.getVoiceConfig(trackId);
         if (!config) return null;
         return {
@@ -654,8 +827,27 @@ export class GrooveboxEngine {
           params: config.params as Record<string, unknown> | undefined,
           note: config.note,
         };
-      },
-      (trackId) => {
+      } else {
+        // Use stored slot config
+        const slotConfig = this.sequencer!.getSlotVoiceConfig(slot, trackId);
+        if (!slotConfig) {
+          // Fall back to live state if no stored config
+          const config = this.voiceManager?.getVoiceConfig(trackId);
+          if (!config) return null;
+          return {
+            voiceType: config.voiceType,
+            preset: config.preset,
+            params: config.params as Record<string, unknown> | undefined,
+            note: config.note,
+          };
+        }
+        return slotConfig;
+      }
+    };
+
+    const getChannelConfig = (trackId: string) => {
+      if (slot === currentSlot) {
+        // Use live state
         const params = this.mixer?.getChannelParams(trackId);
         if (!params) return null;
         return {
@@ -669,8 +861,30 @@ export class GrooveboxEngine {
           volume: params.volume,
           pan: params.pan,
         };
+      } else {
+        // Use stored slot config
+        const slotConfig = this.sequencer!.getSlotChannelConfig(slot, trackId);
+        if (!slotConfig) {
+          // Fall back to live state if no stored config
+          const params = this.mixer?.getChannelParams(trackId);
+          if (!params) return null;
+          return {
+            filter: params.filter,
+            saturation: params.saturation,
+            delaySend: params.delaySend,
+            delaySend2: params.delaySend2,
+            delaySend3: params.delaySend3,
+            delaySend4: params.delaySend4,
+            reverbSend: params.reverbSend,
+            volume: params.volume,
+            pan: params.pan,
+          };
+        }
+        return slotConfig;
       }
-    );
+    };
+
+    return this.sequencer.copyPatternSlot(slot, mode, getVoiceConfig, getChannelConfig);
   }
 
   /**
@@ -679,25 +893,38 @@ export class GrooveboxEngine {
   pastePatternSlot(slot: number): boolean {
     if (!this.sequencer) return false;
 
-    return this.sequencer.pastePatternSlot(
+    const currentSlot = this.sequencer.getActivePatternSlot();
+    const isActiveSlot = slot === currentSlot;
+
+    const success = this.sequencer.pastePatternSlot(
       slot,
       (trackId, config) => {
-        // Assign new voice with the config
-        this.voiceManager?.assignVoice({
-          trackId,
-          voiceType: config.voiceType as VoiceType,
+        // Save to target slot's storage
+        this.sequencer!.setSlotVoiceConfig(slot, trackId, {
+          voiceType: config.voiceType,
           preset: config.preset,
           params: config.params,
+          note: config.note,
         });
-        if (config.note !== undefined) {
-          this.voiceManager?.setTrackNote(trackId, config.note);
+
+        // If pasting to active slot, also apply to live state
+        if (isActiveSlot) {
+          this.voiceManager?.assignVoice({
+            trackId,
+            voiceType: config.voiceType as VoiceType,
+            preset: config.preset,
+            params: config.params,
+          });
+          if (config.note !== undefined) {
+            this.voiceManager?.setTrackNote(trackId, config.note);
+          }
         }
       },
       (trackId, params) => {
-        // Update channel params
-        this.mixer?.updateChannel(trackId, {
-          filter: params.filter as ChannelParams['filter'],
-          saturation: params.saturation as ChannelParams['saturation'],
+        // Save to target slot's storage
+        this.sequencer!.setSlotChannelConfig(slot, trackId, {
+          filter: params.filter,
+          saturation: params.saturation,
           delaySend: params.delaySend,
           delaySend2: params.delaySend2,
           delaySend3: params.delaySend3,
@@ -706,8 +933,25 @@ export class GrooveboxEngine {
           volume: params.volume,
           pan: params.pan,
         });
+
+        // If pasting to active slot, also apply to live state
+        if (isActiveSlot) {
+          this.mixer?.updateChannel(trackId, {
+            filter: params.filter as ChannelParams['filter'],
+            saturation: params.saturation as ChannelParams['saturation'],
+            delaySend: params.delaySend,
+            delaySend2: params.delaySend2,
+            delaySend3: params.delaySend3,
+            delaySend4: params.delaySend4,
+            reverbSend: params.reverbSend,
+            volume: params.volume,
+            pan: params.pan,
+          });
+        }
       }
     );
+
+    return success;
   }
 
   /**
@@ -830,6 +1074,8 @@ export class GrooveboxEngine {
 
   assignVoice(config: TrackVoiceConfig): void {
     this.voiceManager?.assignVoice(config);
+    // Save to current slot
+    this.saveVoiceConfigToCurrentSlot(config.trackId);
   }
 
   removeVoice(trackId: string): void {
@@ -852,18 +1098,43 @@ export class GrooveboxEngine {
     params: Partial<FMDrumParams | FMMelodicParams | NoiseVoiceParams | SampleVoiceParams | OceanVoiceParams>
   ): void {
     this.voiceManager?.updateVoiceParams(trackId, params);
+    // Save to current slot
+    this.saveVoiceConfigToCurrentSlot(trackId);
   }
 
   loadVoicePreset(trackId: string, presetName: string): void {
     this.voiceManager?.loadPreset(trackId, presetName);
+    // Save to current slot
+    this.saveVoiceConfigToCurrentSlot(trackId);
   }
 
   setTrackNote(trackId: string, note: number): void {
     this.voiceManager?.setTrackNote(trackId, note);
+    // Save to current slot
+    this.saveVoiceConfigToCurrentSlot(trackId);
   }
 
   getVoicePresets(voiceType: VoiceType): string[] {
     return this.voiceManager?.getPresetsForType(voiceType) ?? [];
+  }
+
+  /**
+   * Save the current voice config for a track to the current pattern slot
+   */
+  private saveVoiceConfigToCurrentSlot(trackId: string): void {
+    if (!this.sequencer || !this.voiceManager) return;
+
+    const currentSlot = this.sequencer.getActivePatternSlot();
+    const voiceConfig = this.voiceManager.getVoiceConfig(trackId);
+
+    if (voiceConfig) {
+      this.sequencer.setSlotVoiceConfig(currentSlot, trackId, {
+        voiceType: voiceConfig.voiceType,
+        preset: voiceConfig.preset,
+        params: voiceConfig.params as Record<string, unknown> | undefined,
+        note: voiceConfig.note,
+      });
+    }
   }
 
   // Performance controls (drift, fill)
@@ -952,6 +1223,32 @@ export class GrooveboxEngine {
    */
   updateChannelParams(trackId: string, params: Partial<ChannelParams>): void {
     this.mixer?.updateChannel(trackId, params);
+    // Save to current slot
+    this.saveChannelConfigToCurrentSlot(trackId);
+  }
+
+  /**
+   * Save the current channel config for a track to the current pattern slot
+   */
+  private saveChannelConfigToCurrentSlot(trackId: string): void {
+    if (!this.sequencer || !this.mixer) return;
+
+    const currentSlot = this.sequencer.getActivePatternSlot();
+    const channelParams = this.mixer.getChannelParams(trackId);
+
+    if (channelParams) {
+      this.sequencer.setSlotChannelConfig(currentSlot, trackId, {
+        filter: channelParams.filter,
+        saturation: channelParams.saturation,
+        delaySend: channelParams.delaySend,
+        delaySend2: channelParams.delaySend2,
+        delaySend3: channelParams.delaySend3,
+        delaySend4: channelParams.delaySend4,
+        reverbSend: channelParams.reverbSend,
+        volume: channelParams.volume,
+        pan: channelParams.pan,
+      });
+    }
   }
 
   /**
