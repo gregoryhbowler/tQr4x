@@ -46,6 +46,9 @@ export interface SampleVoiceParams {
 
   // Output
   gain: number;            // 0-1
+
+  // Sample URL (for persistence when copying patterns)
+  sampleUrl?: string;
 }
 
 const DEFAULT_PARAMS: SampleVoiceParams = {
@@ -251,6 +254,8 @@ export class SampleVoice {
       // Extract filename from URL
       const name = url.split('/').pop() || 'sample';
       this.loadSample(audioBuffer, name);
+      // Store the URL for persistence (pattern copy/paste)
+      this.params.sampleUrl = url;
     } catch (error) {
       console.error('Failed to load sample from URL:', error);
       throw error;

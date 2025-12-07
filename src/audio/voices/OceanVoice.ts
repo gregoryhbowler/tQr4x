@@ -28,6 +28,9 @@ export interface OceanVoiceParams {
 
   // Output
   volume: number;          // Volume 0-100%
+
+  // Sample URL (for persistence when copying patterns)
+  sampleUrl?: string;
 }
 
 const DEFAULT_PARAMS: OceanVoiceParams = {
@@ -94,6 +97,8 @@ export class OceanVoice {
       const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
       const name = url.split('/').pop() || 'sample';
       this.loadSample(audioBuffer, name);
+      // Store the URL for persistence (pattern copy/paste)
+      this.params.sampleUrl = url;
     } catch (error) {
       console.error('Failed to load sample from URL:', error);
       throw error;

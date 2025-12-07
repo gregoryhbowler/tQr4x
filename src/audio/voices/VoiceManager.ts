@@ -324,22 +324,38 @@ export class VoiceManager {
         }
         break;
 
-      case 'sample':
+      case 'sample': {
         voice = new SampleVoice(this.ctx, destination);
         if (config.preset && config.preset in SAMPLE_PRESETS) {
           (voice as SampleVoice).loadPreset(config.preset as keyof typeof SAMPLE_PRESETS);
         }
         if (config.params) {
           (voice as SampleVoice).setParams(config.params as Partial<SampleVoiceParams>);
+          // Reload sample from URL if present (for pattern copy/paste)
+          const sampleParams = config.params as Partial<SampleVoiceParams>;
+          if (sampleParams.sampleUrl) {
+            (voice as SampleVoice).loadSampleFromUrl(sampleParams.sampleUrl).catch(err => {
+              console.error('[VoiceManager] Failed to reload sample from URL:', err);
+            });
+          }
         }
         break;
+      }
 
-      case 'ocean':
+      case 'ocean': {
         voice = new OceanVoice(this.ctx, destination);
         if (config.params) {
           (voice as OceanVoice).setParams(config.params as Partial<OceanVoiceParams>);
+          // Reload sample from URL if present (for pattern copy/paste)
+          const oceanParams = config.params as Partial<OceanVoiceParams>;
+          if (oceanParams.sampleUrl) {
+            (voice as OceanVoice).loadSampleFromUrl(oceanParams.sampleUrl).catch(err => {
+              console.error('[VoiceManager] Failed to reload ocean sample from URL:', err);
+            });
+          }
         }
         break;
+      }
 
       // Plaits melodic engines (0-7)
       case 'plaits-va':
