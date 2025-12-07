@@ -55,6 +55,7 @@ Think of the screen in three zones:
 - Tempo and swing
 - Scale selection for melodic content
 - Recording controls
+- **Mixer** button (opens/closes the mixer view)
 
 **Center: The Pattern Grid**
 - Each row represents one of 12 tracks
@@ -367,6 +368,23 @@ Every track has its own channel with:
 - **Saturation**: Drive and color
 - **Sends**: To the 4 delays and reverb
 
+### The Mixer View
+
+Click the **MIXER** button in the transport bar to open a classic mixer view showing all 12 tracks as horizontal channel strips.
+
+**Each channel strip includes:**
+- **Track name** at the top
+- **Solo (S) / Mute (M) buttons**: Global controls that affect all patterns
+- **Send knobs**: D1-D4 (to each Mimeophon delay) and REV (to reverb)
+- **Pan control**: Stereo position (-1 L to +1 R)
+- **Volume fader**: Vertical fader showing level in dB
+
+**Solo and Mute are global** — when you solo or mute a track, it stays that way regardless of which pattern you're on. This makes it easy to isolate or silence tracks during performance.
+
+**Volume, Pan, and Sends are per-pattern** — these settings are stored independently for each of the 16 pattern slots. Switching patterns recalls each track's mixer settings. This lets you create patterns with completely different mixes (e.g., Pattern 1 has the bass loud, Pattern 2 brings up the hi-hats).
+
+Click **CLOSE MIXER** to hide the mixer and return to the normal view.
+
 ### Filter Types
 
 Choose the filter character that suits your sound:
@@ -544,10 +562,30 @@ This is where you connect sources to destinations.
 
 ### The 16-Pattern Bank
 
-Like Elektron instruments, you have 16 pattern slots. Each track stores its own pattern in each slot.
+Like Elektron instruments, you have 16 pattern slots. Each slot is a complete snapshot of your entire machine state.
+
+**What each pattern stores (per track):**
+- Voice type (FM Drum, FM Melodic, Noise, Sample, Ocean, Complex Morph, Plaits engines)
+- All voice parameters (pitch, decay, FM indices, envelope shapes, sample settings, etc.)
+- Channel settings (volume, pan, filter, saturation, sends)
+- Sequence data (which steps trigger, p-locks, conditions)
+- Track performance settings (drift, fill, octave range)
 
 **Switching patterns:**
-Click a pattern slot (1-16) to switch all tracks to that pattern.
+Click a pattern slot (1-16) to switch all tracks to that pattern. The entire machine state changes — voices get reassigned, channel parameters update, sequences change.
+
+**Patterns as Independent Snapshots:**
+When you copy a pattern, you create a truly independent snapshot. Changes made in one pattern never affect another. For example:
+- Pattern 1 has FM Drum on Track 1 with a short decay
+- Copy All to Pattern 2
+- In Pattern 2, change Track 1 to Ocean Voice with a different sample
+- Switch back to Pattern 1 — it still has FM Drum with the original settings
+
+This means each pattern can have completely different:
+- Voice types on each track
+- Voice parameters (base frequency, envelope shapes, sample selections)
+- Filter and saturation settings
+- Effect sends and volume levels
 
 **Pattern operations (right-click):**
 - **Copy Engines**: Copy voice types and parameters (not sequences)
@@ -558,8 +596,8 @@ Click a pattern slot (1-16) to switch all tracks to that pattern.
 **Workflow example:**
 1. Build your main groove in Pattern 1
 2. Copy All to Pattern 2
-3. Modify Pattern 2 (different melody, add fills)
-4. Switch between them for variation
+3. Modify Pattern 2 — change voice types, load different samples, adjust filters
+4. Switch between them for dramatic variation (each is a complete machine recall)
 
 ### Pattern Sequencer (Arranger)
 
