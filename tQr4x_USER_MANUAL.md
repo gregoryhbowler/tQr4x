@@ -337,6 +337,10 @@ Each track can run at a different speed:
 - Track 2 (snare): 1/1, 3-step pattern = loops every 3 beats
 - They realign every 12 beats, creating evolving rhythm
 
+**SYNC button:** Click SYNC on a track to align it to the master clock position. The track calculates where it *should* be based on its clock division. For example, if the master is at step 8 and Track 2 runs at 2× speed, clicking SYNC moves Track 2 to step 16 (or the equivalent position within its pattern).
+
+**Global RESET:** Click RESET in the transport to restart all tracks from step 1. This is a hard reset — every track returns to the beginning of its pattern simultaneously.
+
 ### Fill Control
 
 A global parameter (-1 to 1) that affects trigger density:
