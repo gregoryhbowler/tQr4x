@@ -266,22 +266,25 @@ export class SampleVoice {
    * Load sample from File object (for drag & drop or file input)
    */
   async loadSampleFromFile(file: File): Promise<void> {
+    // Read as ArrayBuffer for audio decoding
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+    this.loadSample(audioBuffer, file.name);
+
+    // Also read as data URL for persistence (pattern copy/paste)
+    const dataUrl = await this.fileToDataUrl(file);
+    this.params.sampleUrl = dataUrl;
+  }
+
+  /**
+   * Convert a File to a data URL for persistence
+   */
+  private fileToDataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-
-      reader.onload = async () => {
-        try {
-          const arrayBuffer = reader.result as ArrayBuffer;
-          const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
-          this.loadSample(audioBuffer, file.name);
-          resolve();
-        } catch (error) {
-          reject(error);
-        }
-      };
-
+      reader.onload = () => resolve(reader.result as string);
       reader.onerror = () => reject(reader.error);
-      reader.readAsArrayBuffer(file);
+      reader.readAsDataURL(file);
     });
   }
 
