@@ -1,0 +1,188 @@
+.track-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid #333;
+  margin-top: 12px;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.control-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.control-item label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.control-label {
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  min-width: 50px;
+}
+
+.control-item input[type="range"] {
+  width: 120px;
+  accent-color: #ff3366;
+}
+
+/* Special styling for the fill slider (bipolar) */
+.fill-slider {
+  background: linear-gradient(
+    to right,
+    #333 0%,
+    #333 50%,
+    #333 100%
+  );
+}
+
+.control-value {
+  font-size: 11px;
+  color: #aaa;
+  font-family: monospace;
+  min-width: 45px;
+  text-align: right;
+}
+
+.control-hint {
+  font-size: 9px;
+  color: #555;
+  margin-left: 62px;
+}
+
+.scale-controls {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.scale-selectors {
+  display: flex;
+  gap: 8px;
+}
+
+.scale-selectors select {
+  padding: 4px 8px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.scale-selectors select:hover {
+  border-color: #555;
+}
+
+.scale-selectors select:focus {
+  outline: none;
+  border-color: #ff3366;
+}
+
+.root-select {
+  width: 50px;
+}
+
+.scale-select {
+  width: 120px;
+}
+
+.octave-select {
+  width: 65px;
+}
+
+/* Clock Division Controls */
+.clock-division-group {
+  border-left: 1px solid #333;
+  padding-left: 16px;
+}
+
+.clock-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.global-clock-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #888;
+  cursor: pointer;
+}
+
+.global-clock-toggle input[type="checkbox"] {
+  accent-color: #ff3366;
+  cursor: pointer;
+}
+
+.clock-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.division-select {
+  padding: 4px 8px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+  min-width: 130px;
+}
+
+.division-select:hover:not(:disabled) {
+  border-color: #555;
+}
+
+.division-select:focus {
+  outline: none;
+  border-color: #ff3366;
+}
+
+.division-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.resync-btn {
+  padding: 4px 10px;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #aaa;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.resync-btn:hover {
+  background: #444;
+  border-color: #ff3366;
+  color: #fff;
+}
+
+.resync-btn:active {
+  background: #ff3366;
+  border-color: #ff3366;
+  color: #fff;
+}

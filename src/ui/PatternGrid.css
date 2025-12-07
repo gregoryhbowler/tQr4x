@@ -1,0 +1,532 @@
+.pattern-grid {
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #333;
+  padding: 16px;
+}
+
+.pattern-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.pattern-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.track-name {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.pattern-length label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 0.1em;
+}
+
+.pattern-length select {
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.steps-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.step {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.1s ease;
+}
+
+.step:hover {
+  border-color: #555;
+}
+
+.step.beat-start {
+  border-left: 2px solid #444;
+}
+
+.step.active {
+  background: #2a2a2a;
+  border-color: #ff3366;
+}
+
+.step.current {
+  box-shadow: 0 0 0 2px #ff3366;
+}
+
+.step.selected {
+  box-shadow: 0 0 0 2px #00ccff;
+}
+
+.step-velocity {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ff3366;
+  opacity: 0.2;
+  transition: opacity 0.1s ease;
+}
+
+.step.active .step-velocity {
+  opacity: 0.8;
+}
+
+.step-probability {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  font-size: 8px;
+  color: #888;
+}
+
+.step-ratchets {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 8px;
+  color: #00ccff;
+}
+
+.step-condition {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  font-size: 7px;
+  font-family: monospace;
+  color: #ffaa00;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.step-editor {
+  margin-top: 16px;
+  padding: 12px;
+  background: #222;
+  border-radius: 4px;
+  border: 1px solid #444;
+}
+
+.step-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.step-editor-header button {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.step-editor-header button:hover {
+  color: #fff;
+}
+
+.step-param {
+  margin-bottom: 8px;
+}
+
+.step-param label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 0.1em;
+}
+
+.step-param input[type="range"] {
+  flex: 1;
+  accent-color: #ff3366;
+}
+
+.step-param select {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.step-param span {
+  width: 40px;
+  text-align: right;
+  font-family: monospace;
+}
+
+/* Note Selectors for Melodic Tracks */
+.note-selectors-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.note-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 40px;
+}
+
+.note-selector.beat-start {
+  padding-left: 1px;
+}
+
+.note-knob {
+  width: 24px;
+  height: 60px;
+  writing-mode: bt-lr; /* For Firefox */
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  background: #222;
+  accent-color: #00ccff;
+  cursor: pointer;
+}
+
+/* Styling for vertical range inputs */
+.note-knob::-webkit-slider-runnable-track {
+  width: 8px;
+  background: #333;
+  border-radius: 4px;
+}
+
+.note-knob::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #00ccff;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-left: -4px;
+}
+
+.note-knob::-moz-range-track {
+  width: 8px;
+  background: #333;
+  border-radius: 4px;
+}
+
+.note-knob::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #00ccff;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.note-label {
+  margin-top: 4px;
+  font-size: 8px;
+  font-family: monospace;
+  color: #00ccff;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Bassline Generator Controls */
+.bassline-generator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bassline-style {
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #00ccff;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bassline-style:hover {
+  border-color: #00ccff;
+}
+
+.bassline-style:focus {
+  outline: none;
+  border-color: #00ccff;
+}
+
+.generate-btn {
+  background: #00ccff;
+  border: none;
+  border-radius: 4px;
+  color: #000;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.generate-btn:hover {
+  background: #00ddff;
+  transform: scale(1.02);
+}
+
+.generate-btn:active {
+  transform: scale(0.98);
+}
+
+/* P-Lock Visual Indicators */
+.step.has-plocks {
+  border-color: #ff9900;
+}
+
+.step.has-plocks.active {
+  border-color: #ff9900;
+  background: linear-gradient(135deg, #2a2a2a 0%, #332200 100%);
+}
+
+.step.plock-editing {
+  box-shadow: 0 0 0 2px #ff9900, 0 0 8px rgba(255, 153, 0, 0.5);
+  animation: plock-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes plock-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px #ff9900, 0 0 8px rgba(255, 153, 0, 0.3); }
+  50% { box-shadow: 0 0 0 2px #ff9900, 0 0 12px rgba(255, 153, 0, 0.6); }
+}
+
+.step-plock-indicator {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 7px;
+  font-weight: 700;
+  color: #ff9900;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0 3px;
+  border-radius: 2px;
+}
+
+/* P-Lock Section in Step Editor */
+.plock-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #444;
+}
+
+.plock-header {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #ff9900;
+  margin-bottom: 8px;
+}
+
+.plock-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.plock-edit-toggle {
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #aaa;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.plock-edit-toggle:hover {
+  border-color: #ff9900;
+  color: #ff9900;
+}
+
+.plock-edit-toggle.active {
+  background: #ff9900;
+  border-color: #ff9900;
+  color: #000;
+}
+
+.plock-audition-btn {
+  background: #222;
+  border: 1px solid #ff9900;
+  border-radius: 4px;
+  color: #ff9900;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.plock-audition-btn:hover {
+  background: #ff9900;
+  color: #000;
+}
+
+.plock-clear-btn {
+  background: #222;
+  border: 1px solid #666;
+  border-radius: 4px;
+  color: #888;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.plock-clear-btn:hover {
+  border-color: #ff3366;
+  color: #ff3366;
+}
+
+.plock-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 153, 0, 0.1);
+  border: 1px solid rgba(255, 153, 0, 0.3);
+  border-radius: 4px;
+  font-size: 10px;
+  color: #ff9900;
+  margin-bottom: 8px;
+}
+
+.plock-status-indicator {
+  width: 8px;
+  height: 8px;
+  background: #ff9900;
+  border-radius: 50%;
+  animation: plock-blink 1s ease-in-out infinite;
+}
+
+@keyframes plock-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.plock-list {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 8px;
+  margin-top: 8px;
+}
+
+.plock-list-header {
+  font-size: 9px;
+  color: #666;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+
+.plock-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #222;
+}
+
+.plock-item:last-child {
+  border-bottom: none;
+}
+
+.plock-param-name {
+  font-size: 10px;
+  color: #ff9900;
+  font-family: monospace;
+}
+
+.plock-param-value {
+  font-size: 10px;
+  color: #fff;
+  font-family: monospace;
+}
+
+/* Copy/Paste Controls */
+.step-copy-paste {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #333;
+}
+
+.copy-btn,
+.paste-btn {
+  flex: 1;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #aaa;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.copy-btn:hover {
+  border-color: #00ccff;
+  color: #00ccff;
+}
+
+.paste-btn:hover:not(:disabled) {
+  border-color: #00ff88;
+  color: #00ff88;
+}
+
+.paste-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.copy-btn:active,
+.paste-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}

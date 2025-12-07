@@ -1,0 +1,490 @@
+.fx-panel {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.fx-section {
+  border-bottom: 1px solid #333;
+}
+
+.fx-section:last-child {
+  border-bottom: none;
+}
+
+.fx-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #222;
+  cursor: pointer;
+  user-select: none;
+}
+
+.fx-section-header:hover {
+  background: #282828;
+}
+
+.fx-expand-icon {
+  font-size: 10px;
+  color: #666;
+}
+
+.fx-section-title {
+  font-weight: 600;
+  color: #00ccff;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.fx-track-id {
+  color: #888;
+  font-size: 10px;
+  padding: 2px 8px;
+  background: #333;
+  border-radius: 4px;
+  margin-left: auto;
+}
+
+.fx-section-content {
+  padding: 16px;
+  background: #1a1a1a;
+}
+
+.fx-presets {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #333;
+}
+
+.fx-presets label {
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.fx-presets select {
+  padding: 6px 12px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+  min-width: 120px;
+  cursor: pointer;
+}
+
+.fx-presets select:hover {
+  border-color: #555;
+}
+
+.fx-presets select:focus {
+  outline: none;
+  border-color: #00ccff;
+}
+
+.fx-params-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.fx-param-group {
+  background: #222;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #333;
+}
+
+.fx-param-group h5 {
+  margin: 0 0 10px 0;
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #333;
+  padding-bottom: 6px;
+}
+
+.fx-param {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.fx-param:last-child {
+  margin-bottom: 0;
+}
+
+.fx-param-label {
+  font-size: 10px;
+  color: #aaa;
+  min-width: 60px;
+}
+
+.fx-param input[type="range"] {
+  flex: 1;
+  accent-color: #00ccff;
+  height: 4px;
+}
+
+.fx-param select {
+  flex: 1;
+  padding: 4px 8px;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.fx-param select:hover {
+  border-color: #555;
+}
+
+.fx-param select:focus {
+  outline: none;
+  border-color: #00ccff;
+}
+
+.fx-param-value {
+  font-size: 9px;
+  color: #666;
+  font-family: monospace;
+  min-width: 50px;
+  text-align: right;
+}
+
+.fx-toggle {
+  margin-bottom: 8px;
+}
+
+.fx-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.fx-toggle input[type="checkbox"] {
+  accent-color: #00ccff;
+}
+
+.fx-toggle span {
+  font-size: 10px;
+  color: #aaa;
+}
+
+.fx-sends-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.fx-sends-row:last-child {
+  margin-bottom: 0;
+}
+
+.fx-send {
+  background: #222;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #333;
+}
+
+/* Mimeophon Zone Buttons */
+.mimeophon-zones {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.zone-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.zone-btn:hover {
+  border-color: #666;
+  background: #252525;
+}
+
+.zone-btn.active {
+  background: #00ccff22;
+  border-color: #00ccff;
+}
+
+.zone-letter {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.zone-btn.active .zone-letter {
+  color: #00ccff;
+}
+
+.zone-range {
+  font-size: 8px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.zone-btn.active .zone-range {
+  color: #00ccff88;
+}
+
+/* Mimeophon Toggles Grid */
+.mimeophon-toggles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.mimeophon-toggles .fx-toggle {
+  margin-bottom: 0;
+  background: #1a1a1a;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #333;
+}
+
+.mimeophon-toggles .fx-toggle:has(input:checked) {
+  background: #00ccff18;
+  border-color: #00ccff44;
+}
+
+/* Per-channel Saturation Section */
+.fx-saturation-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #333;
+}
+
+.fx-saturation-section h5 {
+  margin: 0 0 12px 0;
+  font-size: 11px;
+  color: #ff8844;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.saturation-mode-selector {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.saturation-mode-btn {
+  padding: 8px 4px;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #aaa;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.saturation-mode-btn:hover {
+  border-color: #666;
+  background: #252525;
+  color: #fff;
+}
+
+.saturation-mode-btn.active {
+  background: #ff884422;
+  border-color: #ff8844;
+  color: #ff8844;
+}
+
+.saturation-advanced {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #333;
+}
+
+.harmonics-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.harmonics-buttons {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.harmonics-btn {
+  flex: 1;
+  padding: 6px 8px;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #aaa;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.harmonics-btn:hover {
+  border-color: #666;
+  background: #252525;
+}
+
+.harmonics-btn.active {
+  background: #ff884422;
+  border-color: #ff8844;
+  color: #ff8844;
+}
+
+/* FX Routing Section */
+.fx-warning-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: #ff4444;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  margin-left: auto;
+  animation: pulse-warning 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.fx-feedback-warning {
+  background: linear-gradient(135deg, #441111 0%, #331111 100%);
+  border: 1px solid #ff4444;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.fx-feedback-warning strong {
+  color: #ff6666;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fx-feedback-warning p {
+  color: #cc8888;
+  font-size: 11px;
+  margin: 8px 0;
+  line-height: 1.4;
+}
+
+.fx-feedback-warning ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.fx-feedback-warning li {
+  color: #ffaaaa;
+  font-size: 11px;
+  font-family: monospace;
+  margin-bottom: 4px;
+}
+
+.fx-routing-group {
+  background: #222;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  margin-bottom: 12px;
+}
+
+.fx-routing-group:last-child {
+  margin-bottom: 0;
+}
+
+.fx-routing-group h5 {
+  margin: 0 0 10px 0;
+  font-size: 10px;
+  color: #aa88ff;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #333;
+  padding-bottom: 6px;
+}
+
+.fx-routing-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.fx-routing-row .fx-param {
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+}
+
+.fx-routing-row .fx-param-label {
+  min-width: unset;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.fx-routing-row .fx-param-value {
+  min-width: unset;
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .fx-params-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fx-sends-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mimeophon-zones {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .saturation-mode-selector {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .fx-routing-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

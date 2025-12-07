@@ -1,0 +1,192 @@
+.voice-panel {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.voice-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #222;
+  cursor: pointer;
+  user-select: none;
+}
+
+.voice-panel-header:hover {
+  background: #282828;
+}
+
+.expand-icon {
+  font-size: 10px;
+  color: #666;
+}
+
+.voice-type-label {
+  font-weight: 600;
+  color: #ff3366;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.preset-label {
+  color: #888;
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #333;
+  border-radius: 4px;
+}
+
+.voice-panel-content {
+  padding: 16px;
+  border-top: 1px solid #333;
+}
+
+.voice-selectors {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.selector-group label {
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.selector-group select {
+  padding: 6px 12px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+  min-width: 120px;
+  cursor: pointer;
+}
+
+.selector-group select:hover {
+  border-color: #555;
+}
+
+.selector-group select:focus {
+  outline: none;
+  border-color: #ff3366;
+}
+
+.voice-params {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.param-group {
+  background: #222;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #333;
+}
+
+.param-group h4 {
+  margin: 0 0 12px 0;
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #333;
+  padding-bottom: 8px;
+}
+
+.param-control {
+  margin-bottom: 8px;
+}
+
+.param-control:last-child {
+  margin-bottom: 0;
+}
+
+.param-control label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.param-label {
+  font-size: 11px;
+  color: #aaa;
+  min-width: 80px;
+}
+
+.param-control input[type="range"] {
+  flex: 1;
+  accent-color: #ff3366;
+  height: 4px;
+}
+
+.param-value {
+  font-size: 10px;
+  color: #666;
+  font-family: monospace;
+  min-width: 40px;
+  text-align: right;
+}
+
+.param-toggle {
+  margin-bottom: 8px;
+}
+
+.param-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.param-toggle input[type="checkbox"] {
+  accent-color: #ff3366;
+}
+
+.param-toggle span {
+  font-size: 11px;
+  color: #aaa;
+}
+
+/* Envelope visualizer placeholder */
+.envelope-viz {
+  height: 60px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #444;
+  font-size: 10px;
+}
+
+/* Engine description for Plaits */
+.engine-description {
+  font-size: 11px;
+  color: #888;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Optgroup styling for voice type dropdown */
+.selector-group select optgroup {
+  font-weight: bold;
+  color: #ff3366;
+  background: #1a1a1a;
+}

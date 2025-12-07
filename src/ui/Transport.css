@@ -1,0 +1,290 @@
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 24px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #333;
+  flex-wrap: wrap;
+}
+
+.transport-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.transport-btn {
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.transport-btn:hover {
+  background: #333;
+  border-color: #555;
+}
+
+.transport-btn.active {
+  background: #ff3366;
+  border-color: #ff3366;
+}
+
+.transport-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.transport-tempo,
+.transport-swing {
+  display: flex;
+  flex-direction: column;
+}
+
+.transport-tempo label,
+.transport-swing label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transport-tempo span,
+.transport-swing span {
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tempo-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tempo-controls button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.tempo-controls button:hover {
+  background: #333;
+}
+
+.tempo-controls input {
+  width: 60px;
+  padding: 4px 8px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  text-align: center;
+  font-size: 14px;
+  font-family: monospace;
+}
+
+.transport-swing input[type="range"] {
+  width: 100px;
+  accent-color: #ff3366;
+}
+
+.transport-position {
+  flex: 1;
+}
+
+.step-display {
+  display: flex;
+  gap: 4px;
+}
+
+.step-indicator {
+  width: 16px;
+  height: 16px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 2px;
+  transition: background 0.05s ease;
+}
+
+.step-indicator.beat {
+  border-color: #555;
+}
+
+.step-indicator.active {
+  background: #ff3366;
+  border-color: #ff3366;
+  box-shadow: 0 0 8px rgba(255, 51, 102, 0.5);
+}
+
+.transport-scale {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.transport-scale .scale-label {
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.transport-scale .scale-selectors {
+  display: flex;
+  gap: 4px;
+}
+
+.transport-scale select {
+  padding: 6px 8px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.transport-scale select:hover {
+  border-color: #555;
+}
+
+.transport-scale select:focus {
+  outline: none;
+  border-color: #ff3366;
+}
+
+.transport-scale .root-select {
+  min-width: 45px;
+}
+
+.transport-scale .scale-select {
+  min-width: 90px;
+}
+
+.transport-scale .octave-select {
+  min-width: 55px;
+}
+
+.transport-state {
+  font-size: 10px;
+  color: #666;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Resync all button */
+.resync-all-btn {
+  background: #1a3a2a;
+  border-color: #2a5a3a;
+}
+
+.resync-all-btn:hover {
+  background: #2a4a3a;
+  border-color: #4ade80;
+}
+
+.resync-all-btn:active {
+  background: #4ade80;
+  border-color: #4ade80;
+  color: #000;
+}
+
+/* Recording controls */
+.transport-recording {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.record-btn {
+  background: #3a1a1a;
+  border-color: #5a2a2a;
+}
+
+.record-btn:hover {
+  background: #4a2a2a;
+  border-color: #ff4444;
+}
+
+.record-btn.recording {
+  background: #ff3333;
+  border-color: #ff3333;
+  animation: pulse-record 1s ease-in-out infinite;
+}
+
+.record-btn.recording:hover {
+  background: #ff4444;
+  border-color: #ff4444;
+}
+
+@keyframes pulse-record {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 12px 4px rgba(255, 51, 51, 0.4);
+  }
+}
+
+.recording-duration {
+  font-family: monospace;
+  font-size: 14px;
+  color: #ff3333;
+  min-width: 50px;
+  text-align: center;
+}
+
+.download-btn {
+  background: #1a3a1a;
+  border-color: #2a5a2a;
+}
+
+.download-btn:hover {
+  background: #2a4a2a;
+  border-color: #4ade80;
+}
+
+.download-btn:active {
+  background: #4ade80;
+  border-color: #4ade80;
+  color: #000;
+}
+
+/* Preset controls */
+.transport-preset {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preset-btn {
+  background: #1a2a3a;
+  border-color: #2a4a5a;
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
+.preset-btn:hover {
+  background: #2a3a4a;
+  border-color: #66b2ff;
+}
+
+.preset-btn:active {
+  background: #66b2ff;
+  border-color: #66b2ff;
+  color: #000;
+}

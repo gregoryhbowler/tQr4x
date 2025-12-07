@@ -1,0 +1,400 @@
+/**
+ * ComplexMorphPanel styles - "The Structuralist" UI
+ */
+
+.complex-morph-panel {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.cm-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cm-header:hover {
+  background: linear-gradient(135deg, #1e1e38 0%, #1a2548 100%);
+}
+
+.cm-expand-icon {
+  font-size: 10px;
+  color: #666;
+}
+
+.cm-title {
+  font-weight: 700;
+  color: #00ff88;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.cm-subtitle {
+  color: #888;
+  font-size: 10px;
+}
+
+.cm-preset-badge {
+  color: #888;
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #333;
+  border-radius: 4px;
+  margin-left: auto;
+}
+
+.cm-content {
+  padding: 16px;
+  border-top: 1px solid #333;
+}
+
+/* Preset selector */
+.cm-preset-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cm-preset-row label {
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.cm-preset-row select {
+  flex: 1;
+  max-width: 200px;
+  padding: 6px 12px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cm-preset-row select:hover {
+  border-color: #00ff88;
+}
+
+/* Section titles */
+.cm-section-title {
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 8px;
+}
+
+/* Carrier section */
+.cm-carrier-section {
+  background: #222;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  margin-bottom: 16px;
+}
+
+/* Topology diagram */
+.cm-topology {
+  background: #1a1a1a;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px dashed #333;
+  margin-bottom: 16px;
+}
+
+.cm-topology-title {
+  font-size: 10px;
+  color: #666;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.cm-topology-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.cm-topo-box {
+  width: 36px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.cm-op-a {
+  background: rgba(0, 255, 136, 0.2);
+  border: 1px solid #00ff88;
+  color: #00ff88;
+}
+
+.cm-op-b {
+  background: rgba(0, 170, 255, 0.2);
+  border: 1px solid #00aaff;
+  color: #00aaff;
+}
+
+.cm-op-c {
+  background: rgba(255, 102, 170, 0.2);
+  border: 1px solid #ff66aa;
+  color: #ff66aa;
+}
+
+.cm-carrier {
+  background: rgba(255, 204, 0, 0.2);
+  border: 1px solid #ffcc00;
+  color: #ffcc00;
+}
+
+.cm-notch {
+  background: rgba(170, 136, 255, 0.2);
+  border: 1px solid #aa88ff;
+  color: #aa88ff;
+}
+
+.cm-topo-plus {
+  color: #666;
+  font-size: 14px;
+}
+
+.cm-topo-arrow {
+  color: #444;
+  font-size: 12px;
+}
+
+/* Operator panels */
+.cm-operator-panel {
+  background: #222;
+  border-radius: 6px;
+  border: 1px solid #333;
+  border-left: 3px solid;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.cm-operator-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cm-operator-header:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.cm-expand {
+  font-size: 8px;
+  color: #666;
+}
+
+.cm-op-freq {
+  margin-left: auto;
+  font-family: monospace;
+  font-size: 10px;
+  color: #888;
+}
+
+.cm-operator-content {
+  padding: 12px;
+}
+
+.cm-op-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.cm-range-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 4px;
+  margin-bottom: 12px;
+  padding-left: 8px;
+}
+
+.cm-base-row {
+  padding-left: 8px;
+}
+
+/* Amp section */
+.cm-amp-section {
+  background: #222;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  margin-bottom: 12px;
+}
+
+/* LFO section */
+.cm-lfo-section {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.cm-lfo-header {
+  font-size: 9px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.cm-lfo-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.cm-lfo-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cm-lfo-label {
+  font-size: 9px;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.cm-shape-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cm-shape-select span {
+  font-size: 10px;
+  color: #666;
+  min-width: 40px;
+}
+
+.cm-shape-select select {
+  flex: 1;
+  padding: 4px 8px;
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 3px;
+  color: #ccc;
+  font-size: 10px;
+}
+
+/* Interference visualizer */
+.cm-interference-viz {
+  width: 100%;
+  height: 40px;
+  margin-top: 10px;
+  border-radius: 4px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+}
+
+/* Notch filter section */
+.cm-notch-section {
+  background: #222;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  border-left: 3px solid #aa88ff;
+  margin-bottom: 12px;
+}
+
+.cm-notch-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.cm-notch-row:last-child {
+  margin-bottom: 0;
+}
+
+/* Output section */
+.cm-output-section {
+  background: #222;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #333;
+}
+
+.cm-output-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+/* Parameter slider */
+.cm-param {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cm-param-label {
+  font-size: 10px;
+  color: #888;
+}
+
+.cm-param input[type="range"] {
+  width: 100%;
+  height: 4px;
+  accent-color: #00ff88;
+  cursor: pointer;
+}
+
+.cm-param-value {
+  font-size: 9px;
+  color: #666;
+  font-family: monospace;
+  text-align: right;
+}
+
+/* Responsive adjustments */
+@media (max-width: 800px) {
+  .cm-op-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cm-lfo-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cm-notch-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cm-output-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

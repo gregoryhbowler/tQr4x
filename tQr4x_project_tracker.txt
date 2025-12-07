@@ -1,0 +1,2788 @@
+# tQr4x - Autechre-inspired Browser Groovebox
+
+## Project Overview
+
+Build a **browser-based Autechre-inspired groovebox** capable of generating whole tracks: beats, basses, melodic fragments, and FX, with deep parameter control, envelopes, and musically-bounded randomization.
+
+**Tech Stack:** TypeScript, React, Vite, vanilla Web Audio API with AudioWorklets
+
+---
+
+## PROGRESS TRACKER
+
+### ✅ PHASE 1: FOUNDATIONS - COMPLETE
+
+**Completed:** 2024-12-04
+
+#### Files Created:
+
+**Audio Engine (`src/audio/engine/`):**
+- `MasterClock.ts` - Main thread wrapper for the clock worklet
+  - Provides tick subscription API
+  - BPM/swing/PPQN control
+  - Start/stop/pause/resume
+- `Sequencer.ts` - Pattern-based sequencer with polymeter support
+  - Tracks with independent patterns
+  - Per-step: trigger, velocity, microTime, probability, ratchets, paramLocks
+  - Variable pattern lengths (1-64) and divisions
+  - Trigger callback system for connecting voices
+- `GrooveboxEngine.ts` - Main engine API (singleton exported as `engine`)
+  - Coordinates clock, sequencer, and (future) voices/FX
+  - Public methods: start(), stop(), createTrack(), setTrackStep(), toggleTrackStep(), etc.
+  - State serialization: getState() / setState()
+- `index.ts` - Barrel exports
+
+**AudioWorklet (`public/worklets/`):**
+- `master-clock-processor.js` - Sample-accurate clock in AudioWorklet
+  - 96 PPQN (pulses per quarter note)
+  - Swing support (applied to 16th note offbeats)
+  - Emits tick messages with precise AudioContext time
+
+**UI Components (`src/ui/`):**
+- `Transport.tsx` + `Transport.css` - Transport controls
+  - Play/Stop button
+  - BPM control with +/- nudge
+  - Swing slider (0-100%)
+  - Step position indicators
+  - Engine state display
+- `PatternGrid.tsx` + `PatternGrid.css` - Step sequencer grid
+  - Click to toggle steps
+  - Right-click for step editor (velocity, probability, ratchets)
+  - Pattern length selector
+  - Visual feedback for current step position
+- `index.ts` - Component exports
+
+**App & Styling:**
+- `App.tsx` - Main app component, initializes engine
+- `App.css` - App layout styling
+- `index.css` - Global styles
+
+#### Features Implemented:
+1. ✅ Sample-accurate clock running in AudioWorklet
+2. ✅ 96 PPQN resolution for precise timing
+3. ✅ Swing control (0-100%, applied to 16th notes)
+4. ✅ Polymeter support - each track can have different lengths/divisions
+5. ✅ Per-step parameters: velocity, probability, ratchets (subdivisions)
+6. ✅ Pattern length (4-64 steps)
+7. ✅ Test click sound to verify timing
+8. ✅ Transport UI with play/stop, BPM, swing
+9. ✅ Pattern grid with step editing
+10. ✅ State serialization (getState/setState)
+
+#### How to Test:
+```bash
+npm run dev
+# Open http://localhost:5173 (or 5174 if 5173 is in use)
+```
+- Click PLAY to start the sequencer
+- Click steps in the grid to toggle them
+- Right-click a step to edit velocity, probability, ratchets
+- Adjust BPM and swing in the transport
+
+---
+
+### ✅ PHASE 2: VOICES & PERFORMANCE CONTROLS - COMPLETE
+
+**Completed:** 2024-12-04 (Updated: 2024-12-05)
+
+**Goal:** Implement FM synthesis voices with expressive envelopes, plus performance controls for live variation
+
+#### Files Created:
+
+**Voices (`src/audio/voices/`):**
+
+1. **Envelope.ts** - Reusable envelope generator
+   - Multi-stage: AD, AR, ADSR
+   - Curve options: linear, exponential, sharp
+   - `applyEnvelope()` and `applyOneShotEnvelope()` functions
+   - `applyPitchEnvelope()` for drum transients
+   - Envelope class for reusable instances
+
+2. **FMDrumVoice.ts** - 3-operator FM drum synthesis
+   - Carrier + 2 modulators architecture
+   - Pitch envelope for transient punch
+   - FM index control per operator
+   - Noise layer with HP filter for snares
+   - Presets: kick, snare, tom, clap, perc, zap
+   - Full parameter control via getParams/setParams
+
+3. **FMMelodicVoice.ts** - Polyphonic FM melodic voice
+   - 3-operator FM design (carrier + 2 modulators)
+   - 6-voice polyphony with voice stealing
+   - ADSR amplitude envelope
+   - FM index envelope for attack brightness
+   - Optional lowpass filter with envelope
+   - Glide/portamento support
+   - Presets: bass, pad, lead, bell, pluck, brass
+   - **NEW (2024-12-05):** 6 acid bass presets (acidSquelch, acidHard, acidSoft, acidBubble, acidDeep, acidScream)
+
+4. **NoiseVoice.ts** - Noise and hi-hat synthesis
+   - White/pink/brown noise sources (pre-computed buffers)
+   - Highpass/bandpass/lowpass filter modes
+   - FM metallic layer for 808-style hats
+   - Click/impulse transient layer
+   - Fast AD envelope
+   - Presets: closedHat, openHat, ride, crash, shaker, snap, rim, hiss, static
+
+5. **VoiceManager.ts** - Voice routing and management
+   - Assigns voices to tracks
+   - Routes sequencer triggers to voices
+   - Parameter management per track
+   - Preset loading
+   - State serialization/deserialization
+   - **FIXED (2024-12-05):** `getVoiceConfig()` now returns full params from actual voice, not just initially set params
+
+6. **index.ts** - Barrel exports for voice module
+
+**Music Theory (`src/audio/music/`):**
+
+7. **Scale.ts** - Scale/mode system for melodic sequencing
+   - 20+ scales: major modes, pentatonics, blues, exotic (hirajoshi, insen, arabic, etc.)
+   - `generateNotePool()` - Build note arrays from scale/root/octave
+   - `applyNoteDrift()` - Probabilistic note selection from scale
+   - `applyFillControl()` - Trigger density control (thin to fill)
+   - `quantizeToScale()` - Snap notes to nearest scale degree
+   - `getScaleNeighbors()` - Get nearby scale notes for drift
+
+8. **BasslineGenerator.ts** - NEW (2024-12-05) Bassline pattern generation
+   - 9 bassline styles: root, octave, walking, acid, acidRun, syncopated, minimal, driving, random
+   - Scale-quantized note generation
+   - Rhythm patterns for each style
+   - Accent patterns for acid styles
+   - Velocity variation
+   - Generates StepParams[] directly for pattern grid
+
+**UI Components (`src/ui/`):**
+
+9. **VoicePanel.tsx** + **VoicePanel.css** - Voice parameter editor
+   - Voice type selector (FM Drum, FM Melodic, Noise)
+   - Preset dropdown per voice type
+   - Parameter sliders for all voice parameters
+   - Collapsible panel design
+   - MIDI note selector for melodic voices
+   - **NEW (2024-12-05):** Filter controls for melodic voices (enable, cutoff, resonance, env amount, env decay)
+   - **NEW (2024-12-05):** Glide controls (enable, time)
+   - **NEW (2024-12-05):** FM feedback control
+
+10. **TrackControls.tsx** + **TrackControls.css** - Performance controls
+   - **FILL slider** (bipolar): -1 to +1
+     - Left (-1): Remove all triggers
+     - Center (0): Play pattern as sequenced
+     - Right (+1): Trigger every step
+     - In-between: Probabilistic thin/fill
+   - **DRIFT slider** (melodic tracks only): 0 to 1
+     - 0%: Play exact sequenced notes
+     - 100%: Fully random from scale pool
+     - In-between: Weighted toward original note
+   - **SCALE selectors** (melodic tracks only):
+     - Root note (C through B)
+     - Scale type (20+ options)
+     - Octave (1-5)
+
+11. **PatternGrid.tsx** - Step sequencer grid (UPDATED 2024-12-05)
+   - **NEW:** Melodic note sequencing with vertical sliders per step
+   - **NEW:** Note label display (e.g., "C2", "D#3")
+   - **NEW:** Bassline generator dropdown + GEN button for melodic tracks
+   - **FIXED:** Step toggle now reloads pattern from engine to stay in sync
+
+**Engine Updates (`src/audio/engine/`):**
+
+12. **GrooveboxEngine.ts** - Integrated VoiceManager + Performance + Bassline
+   - `assignVoice()` - Assign voice to track
+   - `removeVoice()` - Remove voice from track
+   - `getVoiceConfig()` - Get voice configuration (now returns full params)
+   - `updateVoiceParams()` - Update voice parameters
+   - `loadVoicePreset()` - Load preset
+   - `setTrackNote()` - Set note for melodic voices
+   - `setTrackDrift()` - Set drift amount (0-1)
+   - `setTrackFill()` - Set fill amount (-1 to +1)
+   - `setTrackScale()` - Set scale config (root, scale, octave)
+   - `getTrackPerformance()` - Get drift/fill values
+   - `getTrackScale()` - Get scale config
+   - **NEW (2024-12-05):** `generateTrackBassline(trackId, style)` - Generate bassline pattern
+   - **NEW (2024-12-05):** `getBasslineStyles()` - Get available bassline styles
+   - State serialization includes voices + performance
+
+13. **Sequencer.ts** - Added performance controls
+   - `StepParams.note` - Per-step MIDI note for melodic tracks
+   - `TrackPerformance` - drift/fill per track
+   - `Track.scale` - Scale config per track
+   - `processStep()` applies drift and fill in real-time
+
+14. **index.ts** - Barrel exports (UPDATED 2024-12-05)
+   - Added BasslineStyle, BasslineConfig, GeneratedBassline type exports
+   - Added getBasslineStyles export
+
+**App Updates:**
+
+15. **App.tsx** - Multi-track interface
+   - 6 default tracks: Kick, Snare, Hi-Hat, Perc, Clap, Bass
+   - Track tab navigation
+   - Voice panel integration
+   - TrackControls integration
+   - Default patterns with per-step notes for bass
+
+16. **App.css** - Track tab styling
+
+#### Features Implemented:
+
+1. ✅ Multi-stage envelopes (AD, AR, ADSR) with curve types
+2. ✅ 3-operator FM drum synthesis with pitch envelope
+3. ✅ Polyphonic FM melodic voice (6 voices)
+4. ✅ Noise voice with metallic FM layer
+5. ✅ Voice manager connecting voices to tracks
+6. ✅ Voice parameter UI with real-time control
+7. ✅ Preset system for all voice types
+8. ✅ State serialization includes voice state
+9. ✅ **Drift control** - Probabilistic note variation within scale
+10. ✅ **Fill control** - Bipolar trigger density (thin ↔ fill)
+11. ✅ **Scale system** - 20+ scales with root/octave selection
+12. ✅ **Per-step notes** - Melodic sequencing with individual step pitches
+13. ✅ **6 drum/melodic tracks** - Kick, Snare, Hat, Perc, Clap, Bass
+14. ✅ **Bassline generator** - 9 styles including acid patterns (NEW 2024-12-05)
+15. ✅ **Filter controls** - Full filter section for melodic voices (NEW 2024-12-05)
+16. ✅ **6 acid bass presets** - acidSquelch, acidHard, acidSoft, acidBubble, acidDeep, acidScream (NEW 2024-12-05)
+
+#### How to Test:
+
+```bash
+npm run dev
+```
+- Click PLAY to start the sequencer
+- Click track tabs (Kick, Snare, Hi-Hat, Perc, Clap, Bass) to switch tracks
+- Edit pattern by clicking steps in the grid
+- Right-click a step to edit velocity, probability, ratchets
+- Expand voice panel to tweak sound parameters
+- Use **FILL** slider to thin out or fill in triggers in real-time
+- On Bass track: Use **DRIFT** to add melodic variation
+- On Bass track: Change **SCALE** root/mode/octave to shift the note pool
+- **NEW:** On Bass track: Select a bassline style and click **GEN** to generate patterns
+- **NEW:** On Bass track: Use vertical note sliders to change per-step notes
+- **NEW:** On Bass track: Enable filter and adjust cutoff/resonance for squelchy acid sounds
+
+---
+
+### ✅ PHASE 3: FX & MIXING - COMPLETE
+
+**Started:** 2024-12-04
+**Completed:** 2024-12-05
+**Status:** All FX infrastructure complete with working Freeverb AudioWorklet
+
+**Goal:** Add send effects and master processing
+
+#### Files Created:
+
+**FX Effects (`src/audio/fx/`):**
+
+1. **Delay.ts** - Tempo-synced stereo delay ✅ WORKING
+   - Tempo-synced delay times (1/4, 1/8, 1/16, dotted, triplet)
+   - Stereo ping-pong mode
+   - Feedback with lowpass/highpass/bandpass filter in path
+   - Tape-like modulation for grainy character
+   - Presets: pingPong, slapback, dub, tape, ambient, rhythmic
+
+2. **Reverb.ts** - ✅ REDESIGNED with Freeverb AudioWorklet
+   - Based on Jezar's Freeverb - known for smooth, lush character
+   - 8 parallel LBCF (Lowpass-feedback Comb Filters) per channel
+   - 4 series allpass filters per channel for diffusion
+   - True stereo with +23 sample offset (L/R decorrelated)
+   - Smooth damping via one-pole lowpass in feedback
+   - Stable - no runaway feedback
+   - **AudioWorklet-based** (`public/worklets/freeverb-processor.js`)
+   - Graceful fallback if worklet fails to load
+   - Classic 90s IDM digital reverb character (MIDIverb/Quadraverb era)
+   - Presets: room, hall, plate, cathedral, midiverb, quadraverb, shimmer, ambience, gated, aeLong
+
+**AudioWorklet Processors (`public/worklets/`):**
+
+3. **freeverb-processor.js** - Freeverb DSP in AudioWorklet ✅ NEW
+   - Sample-accurate Jezar Freeverb implementation
+   - CombFilter class with lowpass-feedback
+   - AllpassFilter class for diffusion
+   - SCALE_WET = 3.0, FIXED_GAIN = 0.015 (classic Freeverb constants)
+   - Sample rate scaling for consistent sound at all rates
+   - Parameters: roomSize, damping, wetLevel, dryLevel, width
+
+4. **MasterBus.ts** - Master output processing ✅ WORKING
+   - Input/output gain staging
+   - Soft clipper/saturator with tanh-based waveshaping
+   - High shelf EQ for brightness control
+   - Brick-wall limiter for safety
+   - Presets: clean, warm, punchy, loud, vintage
+
+5. **Mixer.ts** - Per-track mixing with send FX routing ✅ WORKING
+   - Per-track volume and pan
+   - Per-track delay and reverb send levels
+   - Post-fader sends (sends come after track fader)
+   - FX return level controls
+   - Master bus integration
+   - **Send effects properly initialized** with dryLevel: 0, wetLevel: 1.0
+   - State serialization
+
+6. **index.ts** - Barrel exports
+
+**UI Components (`src/ui/`):**
+
+7. **FXPanel.tsx** + **FXPanel.css** - FX parameter editor ✅ WORKING
+   - Track sends section (volume, pan, delay send, reverb send)
+   - Delay section with all parameters and presets
+   - Reverb section with all parameters and presets (+ Width control for stereo)
+   - Master section with gain, saturation, tone, limiter
+   - Collapsible accordion design
+   - Return level controls
+   - **Removed wet/dry sliders** (not needed for send effects)
+
+**Engine Updates (`src/audio/engine/`):**
+
+8. **GrooveboxEngine.ts** - Added FX API ✅ WORKING
+   - Fixed React Strict Mode double-mount issue
+   - Engine init now gracefully handles re-initialization
+   - `getChannelParams()` / `updateChannelParams()` - Per-track mixing
+   - `getDelayParams()` / `setDelayParams()` - Delay effect
+   - `getReverbParams()` / `setReverbParams()` - Reverb effect
+   - `getMasterParams()` / `setMasterParams()` - Master bus
+   - `getDelayReturnLevel()` / `setDelayReturnLevel()` - Delay return
+   - `getReverbReturnLevel()` / `setReverbReturnLevel()` - Reverb return
+   - `getLimiterGainReduction()` - For metering
+   - State serialization includes mixer state
+
+9. **VoiceManager.ts** - Added mixer integration ✅ WORKING
+   - `setMixer()` - Connect voice manager to mixer
+   - Voices now route through mixer channels for FX sends
+
+**App Updates:**
+
+10. **App.tsx** - FX panel integration ✅ WORKING
+   - FX state management (channel params, delay, reverb, master)
+   - FX handler callbacks
+   - FXPanel component integration
+   - Fixed: cleanup no longer disposes engine (singleton pattern)
+
+#### Features Implemented:
+
+1. ✅ Tempo-synced stereo delay with ping-pong
+2. ✅ Freeverb-style reverb with lush 90s IDM character (AudioWorklet)
+3. ✅ Master bus with saturation and limiting
+4. ✅ Per-track volume, pan, and send levels
+5. ✅ Post-fader FX sends (dry signal bypasses effects)
+6. ✅ FX return level controls
+7. ✅ Preset system for all FX (including midiverb/quadraverb/aeLong)
+8. ✅ State serialization includes FX state
+9. ✅ FX UI panel with full parameter control
+10. ✅ Stereo width control for reverb
+
+#### Technical Notes:
+
+**Send Effect Routing:**
+- Send effects must have `dryLevel: 0` and `wetLevel: 1.0`
+- The dry signal already passes through the preEffectBus (direct to output)
+- Send effects only receive and process the wet signal portion
+- Mixer.ts initializes effects with correct send routing
+- All presets in Delay.ts and Reverb.ts include `dryLevel: 0`
+
+**Freeverb Implementation:**
+- Uses AudioWorklet for low-latency, sample-accurate processing
+- Graceful fallback to bypass if worklet fails to load
+- True stereo with +23 sample L/R offset for decorrelation
+- SCALE_WET = 3.0 amplifies wet signal for proper levels
+
+#### Previous Issues (Now Resolved):
+
+1. **Reverb quality** - FIXED: Replaced Schroeder with Freeverb AudioWorklet
+   - Now smooth, lush character matching 90s IDM hardware reverbs
+   - Stable - no runaway feedback
+   - True stereo processing with proper decorrelation
+
+2. **FX not producing sound** - FIXED: Send routing corrected
+   - Effects were initialized with dryLevel: 1.0 (causing double signal)
+   - Fixed by setting dryLevel: 0, wetLevel: 1.0 in Mixer.ts
+
+3. **React Strict Mode** - FIXED:
+   - Engine.init() now returns early if already initialized
+   - App.tsx cleanup only calls stop(), not dispose()
+
+#### How to Test:
+
+```bash
+npm run dev
+```
+- Click PLAY to start the sequencer
+- Expand the FX panel (below voice panel) on any track
+- **TRACK SENDS**: Adjust volume, pan, delay send, reverb send
+- **DELAY**: Try presets like "pingPong", "dub", "tape"
+- **REVERB**: Try presets like "midiverb", "quadraverb", "aeLong" for 90s IDM character
+- **MASTER**: Adjust input gain, saturation, high shelf, limiter
+
+---
+
+### ✅ PHASE 4: MODULATION & RANDOMIZATION - COMPLETE
+
+**Started:** 2024-12-04
+**Completed:** 2024-12-04 (Updated: 2024-12-05)
+
+**Goal:** Add LFOs, mod matrix, and musically-bounded randomization
+
+#### Files Created:
+
+**Modulation System (`src/audio/mod/`):**
+
+1. **LFO.ts** - Low Frequency Oscillator system
+   - `LFO` class - Single LFO instance with multiple waveforms
+   - `LFOManager` class - Manages 4 global LFOs + 2 slow random modulators
+   - **Shapes:** sine, triangle, square, sawtooth, sample & hold, random
+   - **Tempo sync:** Musical divisions (8 bars → 1/32, dotted, triplets)
+   - **Free-running mode:** Rate in Hz (0.01-30 Hz)
+   - **Phase offset control** (0-360°)
+   - **Bipolar/unipolar output modes**
+   - **Smoothing** for S&H and random shapes
+   - **Presets:** slowSweep, fastWobble, tremolo, gate, ramp, randomSteps, smoothRandom, drift
+   - BPM sync for tempo-locked modulation
+
+2. **ModMatrix.ts** - Modulation routing matrix
+   - **Source → Destination → Depth routing**
+   - Sources: LFO 1-4, Random 1-2, Velocity, Mod Wheel
+   - **Voice Destinations:**
+     - Pitch: pitch, pitchEnvAmount, pitchEnvDecay
+     - FM: op1Ratio, op1Index, op1Feedback, op2Ratio, op2Index, op2ToOp1, fmIndex, fmIndexEnvAmount
+     - Amp: ampAttack, ampDecay
+     - Filter: filterCutoff, filterQ, filterEnvAmount, noiseFilterFreq, filterFreq
+     - Noise: noiseMix, noiseDecay, decay, metalAmount, clickAmount
+     - Other: glideTime
+   - **FX Destinations:**
+     - Delay: delayFeedback, delayFilterFreq, delayModDepth, delayWetLevel
+     - Reverb: reverbSize, reverbDamping, reverbWidth, reverbWetLevel
+     - Master: masterSaturation, masterTone
+   - **Mixer Destinations:** volume, pan, delaySend, reverbSend
+   - Multiple routes per destination (additive)
+   - Per-track override capability (via optional trackId field)
+   - Depth can be positive or negative (inverted modulation)
+   - Global depth multiplier
+   - Enable/disable toggle
+   - **Presets:** subtleWobble, tremoloFilter, fmSweep, chaosFilter, spaceDrift, rhythmicGate, organicMovement
+
+3. **Randomizer.ts** - Musically-bounded randomization system
+   - `SeededRandom` class - Reproducible random number generator (mulberry32 algorithm)
+   - **Randomization intensity levels:** subtle, moderate, extreme
+   - **Musically-bounded parameter ranges:**
+     - Each parameter has min/max and per-intensity multiplier ranges
+     - Prevents harsh/unusable sounds
+   - **Voice mutation:**
+     - `mutateFMDrum()` - Randomize FM drum voice params
+     - `mutateFMMelodic()` - Randomize FM melodic voice params
+     - `mutateNoiseVoice()` - Randomize noise voice params
+     - Exclude specific parameters from mutation
+   - **Scene randomization:**
+     - `randomizeScene()` - Mutate all tracks at once
+     - `randomFMDrum()` - Generate completely random drum params
+   - **Pattern randomization:**
+     - `randomizeStepProbabilities()` - Random probability values
+     - `randomizePattern()` - Random patterns with musical constraints
+       - Downbeat emphasis
+       - Max consecutive triggers
+       - Minimum gap between triggers
+   - **Micro jitter:**
+     - Subtle continuous variation for organic feel
+     - Configurable rate and amount
+     - Per-parameter enable/disable
+   - **Gaussian distribution** for natural-feeling randomness
+   - **Seed control** for reproducibility
+
+4. **index.ts** - Barrel exports for mod module
+
+**UI Components (`src/ui/`):**
+
+5. **ModulationPanel.tsx** + **ModulationPanel.css** - Complete modulation UI
+   - **Three-tab interface:**
+     - **LFOs Tab:** 4 LFO controls with full parameter editing
+       - Shape selector (6 waveforms)
+       - Sync selector (free, musical divisions)
+       - Rate slider (Hz, disabled when synced)
+       - Depth slider (0-100%)
+       - Phase slider (0-360°)
+       - Bipolar toggle
+       - Smoothing slider (for S&H/random)
+       - Preset dropdown
+     - **Mod Matrix Tab:**
+       - Global depth multiplier
+       - Preset dropdown (7 routing presets)
+       - Add Route button
+       - Route list with:
+         - **Track selector** (All Tracks, or specific track) - NEW
+         - Source selector (LFOs, randoms, velocity, mod wheel)
+         - Destination selector (organized by category)
+         - Depth slider (-100% to +100%)
+         - Remove button
+     - **Randomize Tab:**
+       - Mutate Current Track: Subtle/Moderate/Extreme buttons
+       - Randomize Scene: Subtle/Moderate/Extreme buttons
+       - Micro Jitter: Enable toggle + Amount slider
+   - **Slow Random Modulators:** Rate and smoothing controls for both
+   - **Enable toggle** in header
+   - **Collapsible panel design** (matches other panels)
+
+**Engine Updates (`src/audio/engine/`):**
+
+6. **GrooveboxEngine.ts** - Full modulation API integration
+   - LFO management:
+     - `getLFOParams()` - Get all LFO parameters
+     - `getLFOParam(index)` - Get specific LFO params
+     - `setLFOParams(index, params)` - Set LFO params
+   - Slow random:
+     - `getSlowRandomParams()` - Get slow random settings
+     - `setSlowRandomParams(index, rate, smoothing)` - Set slow random
+   - Mod matrix:
+     - `getModRoutes()` - Get all routes
+     - `addModRoute(route)` - Add new route
+     - `updateModRoute(id, updates)` - Update route
+     - `removeModRoute(id)` - Remove route
+     - `loadModPreset(name)` - Load preset routing
+     - `getGlobalModDepth()` / `setGlobalModDepth()` - Master depth
+     - `isModEnabled()` / `setModEnabled()` - Enable/disable
+   - Randomizer:
+     - `mutateTrack(trackId, intensity)` - Mutate single track
+     - `randomizeScene(intensity)` - Mutate all tracks
+     - `getMicroJitter()` / `setMicroJitter()` - Jitter config
+     - `getRandomSeed()` / `setRandomSeed()` / `newRandomSeed()` - Seed control
+   - State:
+     - `getModState()` / `setModState()` - Modulation state serialization
+     - `getLFOValues()` - Get current LFO values (for visualization)
+   - BPM changes propagate to LFO manager
+
+7. **VoiceManager.ts** - Modulation integration (UPDATED 2024-12-05)
+   - `setModMatrix()` - Connect mod matrix for per-trigger modulation
+   - `handleTrigger()` - Applies modulation at trigger time
+   - `getModulatedParams()` - Get modulated params for a track at specific time
+   - `getDestinationMapping()` - Maps mod destinations to voice parameter names
+
+**App Updates:**
+
+8. **App.tsx** - ModulationPanel integration
+   - Modulation state management:
+     - LFO params array (4 LFOs)
+     - Slow random params
+     - Mod routes array
+     - Global mod depth
+     - Mod enabled flag
+     - Micro jitter enabled/amount
+   - Handler functions for all modulation operations
+   - ModulationPanel rendered below FXPanel
+   - Footer updated: "Phase 4: Modulation & Randomization"
+
+#### Features Implemented:
+
+1. ✅ **4 Global LFOs** with 6 waveform shapes
+2. ✅ **Tempo sync** with full musical division support (8 bars → 1/32)
+3. ✅ **2 Slow random modulators** for organic drift
+4. ✅ **Mod Matrix** with source → destination → depth routing
+5. ✅ **40+ modulation destinations** (voices, FX, mixer)
+6. ✅ **Mod presets** for common routing configurations
+7. ✅ **Musically-bounded randomization** with 3 intensity levels
+8. ✅ **Voice mutation** (per-track and scene-wide)
+9. ✅ **Micro jitter** for subtle continuous variation
+10. ✅ **Seeded randomness** for reproducibility
+11. ✅ **Pattern randomization** with musical constraints
+12. ✅ **Full UI** with tabbed interface for LFOs, matrix, and randomizer
+13. ✅ **State serialization** includes modulation state
+14. ✅ **Per-track mod routing** - Routes can target specific tracks (FIXED 2024-12-05)
+15. ✅ **Per-trigger modulation** - ModMatrix connected to VoiceManager (FIXED 2024-12-05)
+
+#### Issues Fixed (2024-12-05):
+
+1. **Modulation not affecting destinations** - FIXED:
+   - ModMatrix was created but never connected to VoiceManager
+   - Added `setModMatrix()` to VoiceManager
+   - Added `getModulatedParams()` to apply modulation at trigger time
+   - Engine now calls `voiceManager.setModMatrix(modMatrix)` during init
+
+2. **Unclear which tracks modulation targets** - FIXED:
+   - Added track selector dropdown to mod routes in UI
+   - Routes can now target "All Tracks" or a specific track
+   - ModMatrix.applyModulation() accepts optional trackId parameter
+
+#### How to Test:
+
+```bash
+npm run dev
+```
+
+1. **LFOs:**
+   - Expand the MODULATION panel on any track
+   - Go to the LFOs tab
+   - Adjust LFO 1 shape, rate, and depth
+   - Try tempo-synced modes (1/4, 1/8, etc.)
+   - Load presets like "tremolo" or "gate"
+
+2. **Mod Matrix:**
+   - Go to the Mod Matrix tab
+   - Click "+ Add Route"
+   - Select track (All Tracks or specific), source (LFO 1), destination (filterCutoff), set depth
+   - Try preset routings like "organicMovement" or "spaceDrift"
+
+3. **Randomizer:**
+   - Go to the Randomize tab
+   - Click "Moderate" under "Mutate Current Track" to vary the sound
+   - Click "Extreme" under "Randomize Scene" to vary all tracks
+   - Enable Micro Jitter for subtle ongoing variation
+
+---
+
+### ✅ PHASE 5: MORPH STATES - COMPLETE
+
+**Started:** 2024-12-05
+**Completed:** 2024-12-05
+
+**Goal:** Enable live morphing between stored states for that "alive" Autechre feel
+
+#### Concept:
+
+Each track has two types of morph states:
+1. **Sound States** - Snapshots of voice parameters (8 slots per track)
+2. **Pattern States** - Snapshots of trigger configurations (8 slots per track)
+
+A **crossfader** allows real-time morphing between any two selected states, with independent selection of which states appear on each side.
+
+#### Files Created:
+
+**Engine (`src/audio/engine/`):**
+
+1. **SoundMorphState.ts** - Sound parameter snapshot and morphing
+   - `SoundSlot` - Stores voice params, voice type, name, timestamp
+   - `SoundMorphState` class - 8 slots per track
+   - `SoundMorphManager` - Manages states for all tracks
+   - Save/Load/Clear slot operations
+   - A/B state selection with crossfader
+   - `getMorphedParams()` - Interpolates between slots
+   - Per-parameter interpolation curves (linear, exponential, logarithmic)
+   - Frequency params use exp interpolation, time params use log
+   - Boolean/string params switch at crossfader midpoint
+
+2. **PatternMorphState.ts** - Pattern snapshot and morphing
+   - `PatternSlot` - Stores pattern length, division, steps
+   - `PatternMorphState` class - 8 slots per track
+   - `PatternMorphManager` - Manages states for all tracks
+   - Pattern interpolation logic:
+     - Both triggers on: blend velocities
+     - One trigger on: fade in/out with crossfader
+     - Both off: stay off
+   - Notes: weighted random selection based on crossfader
+   - Quantize option for bar-boundary pattern changes
+
+3. **MorphController.ts** - Unified morph interface
+   - Coordinates SoundMorphManager and PatternMorphManager
+   - Independent sound/pattern A/B selection
+   - Independent sound/pattern crossfaders
+   - Linked mode: both crossfaders move together
+   - Global enable/disable
+   - State serialization/deserialization
+
+**UI (`src/ui/`):**
+
+4. **MorphPanel.tsx** + **MorphPanel.css** - Morph control interface
+   - Collapsible panel design (matches other panels)
+   - Global enable toggle in header
+   - Link sound & pattern crossfaders option
+   - **Sound States section:**
+     - 8 slot buttons in a row
+     - Click empty slot to save, click filled to load
+     - Right-click for menu: Save/Load/Clear/Set A/Set B
+     - Visual indicators for A (cyan) and B (magenta) selection
+     - Gradient crossfader slider (cyan → magenta)
+     - Percentage display
+   - **Pattern States section:**
+     - Same 8-slot interface as sound
+     - Quantize toggle for bar-boundary changes
+   - Info section with usage instructions
+
+**Engine Integration (`src/audio/engine/GrooveboxEngine.ts`):**
+
+5. Full morph API added:
+   - `getTrackMorphState(trackId)` - Get full state for UI
+   - `saveSoundToSlot(trackId, slotId)` - Save current voice params
+   - `loadSoundFromSlot(trackId, slotId)` - Load voice params
+   - `clearSoundSlot(trackId, slotId)` - Clear slot
+   - `setSoundMorphSelection(trackId, selection)` - Set A/B
+   - `setSoundCrossfader(trackId, position)` - Morph and apply params
+   - `savePatternToSlot(trackId, slotId)` - Save current pattern
+   - `loadPatternFromSlot(trackId, slotId)` - Load pattern
+   - `clearPatternSlot(trackId, slotId)` - Clear slot
+   - `setPatternMorphSelection(trackId, selection)` - Set A/B
+   - `setPatternCrossfader(trackId, position)` - Set morph position
+   - `setPatternQuantize(trackId, quantize)` - Bar-boundary option
+   - `setMorphCrossfader(trackId, position)` - Both at once
+   - `setMorphLinked(linked)` / `isMorphLinked()` - Link mode
+   - `setMorphEnabled(enabled)` / `isMorphEnabled()` - Enable state
+   - `getMorphedPatternTrigger(trackId, stepIndex)` - For playback
+   - `getMorphedPattern(trackId)` - Full morphed pattern
+   - `renameSoundSlot()` / `renamePatternSlot()` - Rename slots
+   - `copySoundSlot()` / `copyPatternSlot()` - Copy slots
+   - `getMorphState()` / `setMorphState()` - Serialization
+
+**App Integration (`src/App.tsx`):**
+
+6. MorphPanel integrated with full state management:
+   - Morph state per track
+   - All handlers for save/load/clear/select/crossfader
+   - Linked and enabled state
+   - Voice config refresh on morph changes
+
+#### Features Implemented:
+
+1. ✅ **8 sound morph slots per track** with voice parameter snapshots
+2. ✅ **8 pattern morph slots per track** with trigger configurations
+3. ✅ **A/B state selection** - Pick any two slots to morph between
+4. ✅ **Real-time sound morphing** - Crossfader interpolates all params
+5. ✅ **Pattern blending** - Crossfader affects trigger probability/velocity
+6. ✅ **Per-parameter curves** - Appropriate interpolation for each type
+7. ✅ **Linked mode** - Sound and pattern crossfaders move together
+8. ✅ **Global enable** - Turn morphing on/off
+9. ✅ **Quantize option** - Pattern changes on bar boundary
+10. ✅ **Slot management** - Save/Load/Clear/Copy/Rename
+11. ✅ **State serialization** - Morph state saved with project
+12. ✅ **Visual feedback** - A/B indicators, gradient crossfader
+
+#### How to Test:
+
+```bash
+npm run dev
+```
+
+1. **Sound Morphing:**
+   - Select any track (e.g., Bass)
+   - Expand the MORPH panel
+   - Tweak the voice parameters to create a sound
+   - Click slot 1 (empty) to save the current sound
+   - Modify the sound parameters significantly (different FM ratios, filter, etc.)
+   - Click slot 2 to save this second sound
+   - Right-click slot 1 → "Set as A"
+   - Right-click slot 2 → "Set as B"
+   - Move the crossfader to hear real-time interpolation between sounds
+
+2. **Pattern Morphing:**
+   - Create a pattern on any track
+   - In Pattern States, click slot 1 to save it
+   - Clear or modify the pattern significantly
+   - Click slot 2 to save the new pattern
+   - Set A and B selections
+   - Move the pattern crossfader to blend trigger probabilities
+
+3. **Linked Mode:**
+   - Check "Link Sound & Pattern Crossfaders"
+   - Moving either crossfader moves both
+   - Creates coordinated sound + pattern evolution
+
+#### Example Usage:
+
+```
+Sound States:
+  [1: dark bass] [2: bright bass] [3: sub bass] ...
+  A: [1]  ═══════●═══════  B: [2]
+         ← dark    bright →
+
+Pattern States:
+  [1: minimal] [2: busy] [3: syncopated] ...
+  A: [1]  ════●════════  B: [2]
+        ← sparse   dense →
+```
+
+Moving the crossfader interpolates all parameters between states A and B in real-time, creating evolving textures and patterns.
+
+---
+
+### ✅ PHASE 5: COMPLEX MORPH FM ENGINE - COMPLETE
+
+**Completed:** 2024-12-05
+**Major Update:** 2024-12-05 - Multi-Breakpoint Looping Envelopes
+
+**Goal:** Add a second voice engine type ("The Structuralist") with advanced FM topology and drawable, looping envelopes for complex, evolving timbres
+
+#### Concept: "The Structuralist"
+
+A Complex Morph FM Engine that creates shifting harmonic structures through:
+- **Additive Modulation**: Two operators sum their outputs before modulating a third
+- **Multi-Breakpoint Looping Envelopes**: 2-16 drawable breakpoints that cycle continuously
+- **Per-segment curve types**: exp, linear, sharp, punch, swell, step
+- **High-resonance filtering**: Notch filter post-carrier for spectral shaping
+- **Unquantized pitch**: Frequency sliders in Hz instead of MIDI notes
+
+#### FM Topology
+
+```
+Standard FM:    Op A -> Carrier (simple modulation)
+
+Complex Morph:  (Op A + Op B) -> Op C -> Carrier → Notch Filter
+                     ↑              ↑
+                Summed mods    Third modulator
+```
+
+#### Multi-Breakpoint Looping Envelope Architecture
+
+**MAJOR REDESIGN (2024-12-05):** Replaced fixed ADSR/LFO envelopes with fully drawable, cycling envelopes.
+
+**Core Concept:**
+- Each envelope has **2-16 breakpoints** that the user can draw
+- User defines the **cycle period** (0.05s to 10s)
+- Envelopes **loop continuously** while the voice is active
+- Each segment between breakpoints has its own **curve type**
+
+**Data Structures:**
+
+```typescript
+type CurveType = 'exp' | 'linear' | 'sharp' | 'punch' | 'swell' | 'step';
+
+interface EnvBreakpoint {
+  time: number;       // 0-1 normalized position in cycle
+  value: number;      // 0-1 normalized value
+  curve: CurveType;   // Curve type for segment LEADING TO this point
+}
+
+interface CyclingEnvelope {
+  breakpoints: EnvBreakpoint[];  // 2-16 breakpoints
+  period: number;                // Cycle time in seconds
+  syncToTempo: boolean;          // Future: tempo sync
+  amount: number;                // -1 to 1 (bipolar depth)
+  enabled: boolean;
+}
+
+interface OperatorEnvelopes {
+  pitch: CyclingEnvelope;   // Modulates operator frequency
+  pitchRange: number;       // Range in Hz
+  index: CyclingEnvelope;   // Modulates FM index
+  indexMin: number;         // Min index value
+  indexMax: number;         // Max index value
+  level: CyclingEnvelope;   // Modulates operator level
+  levelMax: number;         // Max level value
+}
+```
+
+**Envelope Curve Types:**
+- `linear`: Straight line interpolation
+- `exp`: Exponential curve (fast start, slow end or vice versa)
+- `sharp`: Very fast attack (t^0.4)
+- `punch`: Extremely fast attack (t^0.15)
+- `swell`: Slow attack, fast end (t^2.5)
+- `step`: Instant jump at end of segment
+
+**Worklet Implementation:**
+- Phase-based cycling (not ADSR stages)
+- Phase wraps from 1 back to 0 for continuous looping
+- Breakpoint interpolation with per-segment curve types
+- All envelopes evaluated at sample rate
+
+#### Files Created/Updated:
+
+**AudioWorklet (`public/worklets/`):**
+- `complex-morph-processor.js` - **REWRITTEN** for cycling envelopes
+  - Phase-based envelope cycling
+  - `evaluateEnvelope()` - finds surrounding breakpoints and interpolates
+  - `interpolate()` - applies curve type to each segment
+  - 6 curve types: exp, linear, sharp, punch, swell, step
+  - All 7 envelopes (3 operators × 3 env types + carrier pitch + amp + notch) cycle independently
+
+**Voices (`src/audio/voices/`):**
+- `ComplexMorphVoice.ts` - **UPDATED** with new envelope types
+  - `EnvBreakpoint`, `CyclingEnvelope`, `CurveType` interfaces
+  - `OperatorEnvelopes` for per-operator envelope groups
+  - Default envelopes are FLAT (value 0.5 at time 0 and 1) - no movement
+  - 4 presets: empty, pluck, morph, chaos
+
+**UI Components (`src/ui/`):**
+- `EnvelopeEditor.tsx` + `EnvelopeEditor.css` - **NEW** canvas-based envelope editor
+  - Click anywhere to add breakpoints (up to 16)
+  - Drag breakpoints to reposition
+  - First/last breakpoints locked to time 0 and 1
+  - Right-click context menu for curve type selection and deletion
+  - Period slider (0.05s to 10s)
+  - Amount slider (-1 to +1, bipolar)
+  - Enable toggle
+  - Visual curve preview with breakpoint indicators
+
+- `ComplexMorphPanel.tsx` - **REWRITTEN** to use EnvelopeEditor
+  - Replaced ADSR sliders with EnvelopeEditor widgets
+  - Each operator has 3 envelope editors (pitch, index, level)
+  - Carrier section with pitch envelope
+  - Amp section with master amplitude envelope
+  - Notch filter section with filter envelope
+  - All range controls (pitchRange, indexMin/Max, levelMax, etc.)
+
+- `ComplexMorphPanel.css` - **UPDATED** with new layout classes
+  - `.cm-range-row`, `.cm-amp-section` for new layout
+
+**App Updates:**
+- `App.tsx` - **UPDATED** for empty initialization
+  - Removed all pre-programmed demo patterns (kicks, snares, hats, bass, morphs)
+  - App now initializes with completely empty patterns on all tracks
+  - User must program their own steps
+
+#### Features Implemented:
+
+1. ✅ **Multi-breakpoint envelopes** (2-16 points per envelope)
+2. ✅ **Drawable envelope editor** - click to add, drag to move, right-click for options
+3. ✅ **6 curve types** per segment (exp, linear, sharp, punch, swell, step)
+4. ✅ **User-defined period** (0.05s to 10s per envelope)
+5. ✅ **Continuous looping** - envelopes cycle while voice is active
+6. ✅ **Bipolar amount** (-1 to +1) for envelope depth
+7. ✅ **Per-operator envelopes** - pitch, index, and level for each of 3 operators
+8. ✅ **Global envelopes** - carrier pitch, master amp, notch filter
+9. ✅ **Empty initialization** - app starts with no pre-programmed steps
+10. ✅ **4 presets** - empty (flat), pluck (percussive), morph (slow evolving), chaos (random-like)
+11. ✅ AudioWorklet-based FM synthesis with additive topology
+12. ✅ High-resonance notch filter with envelope modulation
+13. ✅ Unquantized Hz frequency control (logarithmic sliders)
+14. ✅ Full VoiceManager integration
+
+#### How to Test:
+
+```bash
+npm run dev
+# Open http://localhost:5174
+```
+
+1. **Drawing Envelopes:**
+   - Select a Morph track (Morph 1 or Morph 2)
+   - Expand an operator panel (Operator A, B, or C)
+   - Click the "+" next to an envelope label (Pitch Envelope, Index Envelope, Level Envelope)
+   - Click anywhere on the canvas to add breakpoints
+   - Drag breakpoints to reshape the envelope
+   - Right-click a breakpoint to change curve type or delete it
+
+2. **Adjusting Envelope Properties:**
+   - Period slider: Controls how long one cycle takes (0.05s to 10s)
+   - Amount slider: Controls envelope depth (-1 to +1, 0 = no effect)
+   - Enabled checkbox: Turn envelope on/off
+
+3. **Empty Initialization:**
+   - App starts with all patterns empty
+   - Click steps in the pattern grid to program your own triggers
+   - Right-click steps to edit velocity, probability, ratchets
+
+4. **Presets:**
+   - Select preset from dropdown: empty, pluck, morph, chaos
+   - Each preset configures all operator envelopes differently
+
+---
+
+### 🔲 PHASE 6: UX POLISH - NOT STARTED
+
+**Goal:** Pattern management, presets, visual feedback
+
+#### To Implement:
+
+1. **Scene Management**
+   - Multiple patterns per track
+   - Scene = collection of patterns
+   - Quantized scene switching
+
+2. **Preset System**
+   - JSON export/import
+   - Save/Load buttons
+   - Preset browser
+
+3. **Visual Enhancements**
+   - Trigger flash on steps
+   - Modulation visualization
+   - Level meters
+
+4. **Trigger Delay Network** (from spec 2.3)
+   - Post-sequencer trigger delays
+   - Echo triggers with velocity decay
+   - Complex rhythmic smearing
+
+---
+
+### 🔲 PHASE 7: AUTECHRE-STYLE META-SEQUENCING & RULE SYSTEMS - NOT STARTED
+
+**Goal:** Advanced generative logic, pattern morphing, macro envelopes, and cellular automata for evolving, non-repeating, Autechre-like structures
+
+This phase dramatically expands the expressive and generative potential of the groovebox, allowing the creation of evolving, non-repeating, and highly characteristic Autechre-like structures.
+
+#### 8.1 META-SEQUENCER OVERVIEW
+
+Create a dedicated module structure:
+```
+src/audio/engine/meta/
+    MetaSequencer.ts
+    RuleMatrix.ts
+    PatternMorpher.ts
+    SceneEnvelope.ts
+    LogicGrid.ts
+```
+
+This "meta layer" sits above the core sequencer with **no knowledge of DSP, FM voices, or playback engines**.
+It only outputs decisions that flow into:
+- Track patterns
+- Macro controls
+- Modulation mappings
+- Randomization parameters
+- Per-step probability overrides
+- Timing offsets
+
+**Core Responsibilities:**
+- Transform existing patterns based on rule sets
+- Generate new patterns procedurally
+- Morph between scenes
+- Compute global envelopes that shape entire track behaviors
+- Provide performance-mappable macro parameters
+
+#### 8.2 LOGIC GRID (Cellular Automata Pattern Generator)
+
+**Grid Configuration:**
+- 16×16 or 32×32 matrix (configurable)
+- Each cell stores:
+  - `state` (0/1 or multi-valued)
+  - `weight` (probability/strength)
+  - `value` (optional continuous modulation output)
+
+**Ruleset Engine:**
+- Neighborhood dependence (Moore, Von Neumann)
+- Threshold logic
+- Weighted sums
+- Rule presets (Conway-like, Brian's Brain-like, Autechre-chaos)
+- Time-evolving rule sets (rules themselves change over time!)
+
+**Outputs:**
+- Sequence of 0/1 triggers per row or column
+- Probabilities that override per-step probability
+- Modulation values for parameters
+
+**UI Requirements:**
+- Grid state visualization
+- Rule sliders
+- Rule set selector
+- Play/pause/reset controls
+- Speed control
+
+#### 8.3 RULE MATRIX (Transformational Logic Engine)
+
+**Matrix Structure:**
+- Each row = rule
+- Each column = track or pattern dimension (pitch, velocity, step on/off, probability, microtiming)
+
+**Rule Types:**
+
+1. **Structural rules:**
+   - Reverse pattern
+   - Rotate left/right
+   - Scale pattern length
+   - Fill/clear regions
+   - Randomize subsections
+
+2. **Conditional rules:**
+   - "If step N is active, turn step N+2 on with probability P"
+
+3. **Probabilistic rules:**
+   - Intensify/suppress triggers
+   - Enforce sparse/dense patterns
+
+4. **State-dependent rules:**
+   - Based on current logic grid
+   - Based on envelopes
+   - Based on track activity
+
+5. **Recursive rules:**
+   - Chains of rules run over time (one rule activates another)
+
+**Rule Weighting:**
+- Each rule has weight (0-1)
+- Weight changes influence over time
+
+**Output:**
+- Pattern modifications sent to core sequencer as non-destructive transform layer (unless manually applied)
+
+#### 8.4 PATTERN MORPHER (A/B/C/X Blending & Scene Interpolation)
+
+**Capabilities:**
+- Store pattern snapshots for each track
+- Interpolate between snapshots
+- Crossfade rhythmic density, velocity curves, microtiming, and probability fields
+
+**Morph Modes:**
+- Linear
+- Stepped (discrete)
+- Chaotic wander
+- Clock-synced (every 4 bars, 8 bars, etc.)
+- Macro XY position-driven
+
+**Scene Memory:**
+- Scene A, Scene B, Scene C, Scene X (ad-hoc temporary)
+- Scenes contain all patterns for all tracks
+
+**Scene Morphing:**
+- User-defined speed
+- Tempo-synced increments
+- Triggered by meta-rules
+
+#### 8.5 SCENE ENVELOPE (Global Macro Modulation Curves)
+
+**Features:**
+- Multi-stage breakpoint envelopes
+- Slow evolution (bars/minutes long)
+- Output modulation values to:
+  - Densities
+  - FM mod depth
+  - Filter states
+  - Randomization strength
+  - Rule weights
+  - CA engine speed
+  - Morph amounts
+
+**Envelope Types:**
+- Linear
+- Exponential
+- Random curves
+- Noise-smoothed
+
+**Triggering:**
+- One-shot
+- Looping
+- Retrigger every N bars
+- Follow global song position
+
+#### 8.6 MACRO CONTROLLERS (XY Pad, Sliders, Rule-Weight Pads)
+
+**XY Pad:**
+- X = pattern morphing depth
+- Y = randomization intensity
+- Mappable to: CA rule speed, FM brightness, delay feedback, density modulation
+
+**Slider Bank:**
+- Vertical "macro" sliders mapped to rule weights:
+  - Rule influence
+  - CA state noise
+  - Pattern density scaling
+  - Envelope time scaling
+  - Probability scaling
+
+**RulePad:**
+- Grid for activating groups of rules
+- Tap to enable/disable rule blocks
+- Velocity = rule strength
+- Drag gestures create evolving rule clusters
+
+#### 8.7 META-RANDOMIZATION & CHAOTIC WANDER
+
+**Random Walk:**
+- Slow, drifting values modulating:
+  - Rule weights
+  - CA neighborhood thresholds
+  - Morph amounts
+
+**Noise Modulator:**
+- Filtered noise controlling:
+  - FM index drift
+  - Pitch warp (tiny offsets)
+  - Envelope time variance
+
+**Rule Randomizer:**
+- Randomize rule sets within safe/musical constraints
+- Periodically rotate the rule matrix
+- Manual or clock-triggered
+
+**Seeded Randomness:**
+- Seeds for reproducible results
+
+#### 8.8 META-ENGINE + CORE ENGINE INTEGRATION
+
+**Meta-engine outputs:**
+- Per-track modifications
+- Probability overrides
+- Microtiming offsets
+- Morph coefficients
+- Modulation curves
+- Rule-driven parameter changes
+- Scene transitions
+- CA-derived rhythmic triggers
+
+**Integration requirements:**
+- Non-blocking
+- Time-accurate
+- User-overridable
+- Resettable
+- Core engine treats outputs as incoming instructions, not destructive edits
+
+#### 8.9 UI PANEL REQUIREMENTS
+
+1. **Logic Grid View:**
+   - Colored grid visualization
+   - Rule sliders
+   - Play/pause/reset
+   - CA speed control
+
+2. **Rule Matrix Editor:**
+   - Table view
+   - Per-rule activation switches
+   - Weight sliders
+   - Rule presets
+
+3. **Scene Morphing Panel:**
+   - Scene buttons (A/B/C/X)
+   - Morph slider
+   - Morph LFO/automation control
+
+4. **Breakpoint Envelope Editor:**
+   - Multiple stacked envelope panels
+   - Draggable nodes
+   - Looping controls
+
+5. **Macro XY Pad:**
+   - Large interactive pad
+   - Assignment controls
+   - Range controls
+
+6. **Pattern Snapshot Switcher:**
+   - Clickable grid of snapshots
+   - Morph button
+   - Interpolate speed control
+
+#### 8.10 PERFORMANCE & DSP-SAFETY CONSIDERATIONS
+
+**Critical requirements:**
+- All meta-sequencing runs on main thread, NEVER in AudioWorklet
+- No blocking loops
+- No heavy CPU spikes
+- Use Web Workers if needed for CA or rule-matrix evaluation
+- Keep UI responsive
+
+#### 8.11 DELIVERABLES
+
+**MetaSequencer.ts implementing:**
+- CA grid
+- Rule matrix
+- Morph engine
+- Scene envelopes
+- Macro controllers
+- Randomization modules
+
+**GrooveboxEngine integration methods:**
+- `setMetaEnabled(boolean)`
+- `setRuleWeight(ruleId, value)`
+- `triggerSceneMorph(targetScene)`
+- `setMacroXY(x, y)`
+- `recordPatternSnapshot(sceneId)`
+
+**UI panels for all meta controls**
+
+**Documentation in `/docs/meta-system.md`**
+
+---
+
+### 🔲 PHASE 9: UX POLISH & FINAL - NOT STARTED
+
+**Goal:** Final polish, documentation, and production readiness
+
+(Moved from Phase 6 - now after Meta-Sequencing)
+
+---
+
+## TECHNICAL CONSTRAINTS (Reference)
+
+1. **No Tone.js** - vanilla Web Audio API + AudioWorklets only
+2. **TypeScript** for all code
+3. **ES modules** throughout
+4. **Folder structure:**
+   - `src/audio/engine` - clocks, mixers, routing
+   - `src/audio/voices` - synth/drum voices
+   - `src/audio/fx` - delay, reverb, etc.
+   - `src/audio/worklets` - AudioWorkletProcessor scripts (→ use `public/worklets/` for actual files)
+   - `src/ui` - React components
+5. **Performance:** All time-critical DSP in AudioWorkletProcessor, no setInterval for sequencing
+
+---
+
+## KEY DESIGN GOALS
+
+1. **Sample-accurate clock + sequencer** ✅ DONE (Phase 1)
+2. **FM voices with expressive envelopes** ✅ DONE (Phase 2)
+3. **Performance controls (Drift + Fill)** ✅ DONE (Phase 2)
+4. **Bassline generator with acid patterns** ✅ DONE (Phase 2 - Updated)
+5. **FX & Mixing (Delay, Reverb, Master)** ✅ DONE (Phase 3)
+6. **Modulation & Randomization** ✅ DONE (Phase 4)
+7. **Morph States (sound + pattern morphing)** ✅ DONE (Phase 5)
+8. **UX Polish (scenes, presets, visual feedback)** → Phase 6
+9. **Complex Morph FM Engine** ("The Structuralist") → Phase 7
+10. **Meta-Sequencing & Rule Systems** (cellular automata, scene morphing, macro controllers) → Phase 8
+11. **Final Polish** → Phase 9
+
+---
+
+## API REFERENCE (Current)
+
+```typescript
+import { engine } from './audio/engine';
+
+// Transport
+await engine.start();
+engine.stop();
+engine.bpm = 120;
+engine.swing = 0.5; // 0-1
+
+// Tracks
+engine.createTrack(id, name);
+engine.getTrack(id);
+engine.getAllTracks();
+engine.deleteTrack(id);
+
+// Steps
+engine.setTrackStep(trackId, stepIndex, { trigger, velocity, probability, ratchets, note });
+engine.getTrackStep(trackId, stepIndex);
+engine.toggleTrackStep(trackId, stepIndex);
+
+// Patterns
+engine.getCurrentPattern(trackId);
+engine.setPatternLength(trackId, length);
+engine.setPatternDivision(trackId, division);
+
+// Triggers (for connecting voices)
+engine.onTrigger(trackId, (event) => { /* event.time, event.velocity, event.note, etc. */ });
+
+// Voices
+engine.assignVoice({ trackId, voiceType: 'fm-drum', preset: 'kick' });
+engine.removeVoice(trackId);
+engine.getVoiceConfig(trackId);  // Returns full params from actual voice
+engine.updateVoiceParams(trackId, { pitch: 60, ampDecay: 0.3 });
+engine.loadVoicePreset(trackId, 'snare');
+engine.setTrackNote(trackId, 48); // For melodic voices
+engine.getVoicePresets('fm-drum'); // Returns ['kick', 'snare', 'tom', ...]
+
+// Performance Controls (Drift & Fill)
+engine.setTrackDrift(trackId, 0.3);  // 0-1: note variation amount
+engine.setTrackFill(trackId, -0.5);  // -1 to +1: trigger density
+engine.getTrackPerformance(trackId); // Returns { drift, fill }
+
+// Scale Settings (for melodic tracks)
+engine.setTrackScale(trackId, { root: 0, scale: 'minor', octave: 3 });
+engine.getTrackScale(trackId); // Returns { root, scale, octave }
+
+// Bassline Generation (NEW)
+engine.generateTrackBassline(trackId, 'acid'); // 'root'|'octave'|'walking'|'acid'|'acidRun'|'syncopated'|'minimal'|'driving'|'random'
+engine.getBasslineStyles(); // Returns [{ style, label, description }, ...]
+
+// FX & Mixing
+engine.getChannelParams(trackId); // Returns { volume, pan, mute, delaySend, reverbSend }
+engine.updateChannelParams(trackId, { volume: 0.8, pan: -0.2, delaySend: 0.3 });
+engine.getDelayParams(); // Returns all delay parameters
+engine.setDelayParams({ syncLeft: '1/8', feedback: 0.5, pingPong: true });
+engine.getReverbParams(); // Returns all reverb parameters
+engine.setReverbParams({ size: 0.6, decay: 0.5, preDelay: 20 });
+engine.getMasterParams(); // Returns master bus parameters
+engine.setMasterParams({ saturationAmount: 0.4, limiterThreshold: -1 });
+engine.getDelayReturnLevel(); // 0-1
+engine.setDelayReturnLevel(0.8);
+engine.getReverbReturnLevel(); // 0-1
+engine.setReverbReturnLevel(0.7);
+engine.getLimiterGainReduction(); // For metering
+
+// State
+engine.getState(); // Returns full state snapshot (includes mixer + modulation)
+engine.setState(state); // Restores state
+
+// Events
+engine.onStateChange((state) => { });
+engine.onTick((event) => { });
+
+// Modulation - LFOs
+engine.getLFOParams(); // Returns LFOParams[] for all 4 LFOs
+engine.getLFOParam(index); // Get specific LFO params (0-3)
+engine.setLFOParams(index, { shape: 'sine', rate: 2, depth: 0.5 });
+engine.getLFOValues(); // Get current LFO values for visualization
+
+// Modulation - Slow Random
+engine.getSlowRandomParams(); // Returns { rate1, rate2, smoothing1, smoothing2 }
+engine.setSlowRandomParams(1, 0.1, 0.8); // Set slow random 1 or 2
+
+// Modulation - Mod Matrix
+engine.getModRoutes(); // Returns ModRoute[]
+engine.addModRoute({ source: 'lfo1', destination: 'filterCutoff', depth: 0.5, trackId: 'bass' }); // trackId optional
+engine.updateModRoute(id, { depth: 0.7 });
+engine.removeModRoute(id);
+engine.loadModPreset('organicMovement'); // Load preset routing
+engine.getGlobalModDepth(); // 0-2
+engine.setGlobalModDepth(1.5);
+engine.isModEnabled();
+engine.setModEnabled(true);
+engine.getModState(); // For serialization
+engine.setModState(state);
+
+// Randomizer
+engine.mutateTrack(trackId, 'moderate'); // 'subtle' | 'moderate' | 'extreme'
+engine.randomizeScene('subtle'); // Mutate all tracks
+engine.getMicroJitter(); // Returns { enabled, amount, rateHz, parameters }
+engine.setMicroJitter({ enabled: true, amount: 0.02 });
+engine.getRandomSeed();
+engine.setRandomSeed(12345);
+engine.newRandomSeed();
+
+// Morph States (NEW - Phase 5)
+engine.getTrackMorphState(trackId); // Returns full morph state for UI
+engine.saveSoundToSlot(trackId, slotId); // Save current voice params to slot (1-8)
+engine.loadSoundFromSlot(trackId, slotId); // Load voice params from slot
+engine.clearSoundSlot(trackId, slotId); // Clear a sound slot
+engine.setSoundMorphSelection(trackId, { stateA: 1, stateB: 2 }); // Set A/B
+engine.setSoundCrossfader(trackId, 0.5); // Morph and apply params (0 = A, 1 = B)
+engine.savePatternToSlot(trackId, slotId); // Save current pattern to slot
+engine.loadPatternFromSlot(trackId, slotId); // Load pattern from slot
+engine.clearPatternSlot(trackId, slotId); // Clear a pattern slot
+engine.setPatternMorphSelection(trackId, { stateA: 1, stateB: 2 }); // Set A/B
+engine.setPatternCrossfader(trackId, 0.5); // Set morph position
+engine.setPatternQuantize(trackId, true); // Bar-boundary pattern changes
+engine.setMorphCrossfader(trackId, 0.5); // Set both crossfaders (linked mode)
+engine.setMorphLinked(true); // Link sound & pattern crossfaders
+engine.isMorphLinked();
+engine.setMorphEnabled(true); // Enable/disable morphing
+engine.isMorphEnabled();
+engine.getMorphedPatternTrigger(trackId, stepIndex); // For playback
+engine.getMorphedPattern(trackId); // Full morphed pattern snapshot
+engine.renameSoundSlot(trackId, slotId, 'My Sound');
+engine.renamePatternSlot(trackId, slotId, 'My Pattern');
+engine.copySoundSlot(trackId, fromSlot, toSlot);
+engine.copyPatternSlot(trackId, fromSlot, toSlot);
+engine.getMorphState(); // For serialization
+engine.setMorphState(state);
+```
+
+---
+
+## CONTEXT FOR NEXT SESSION
+
+### Recent Work (2024-12-06 - Latest Session):
+
+1. **Envelope Modulators as Mod Source - COMPLETE (NEW)**
+   - Added 6 envelope modulators (Env 1-6) as new modulation sources
+   - Uses the 75+ Zadar-inspired envelope presets from EnvelopePresets.ts
+   - Features:
+     - **Shape Selection**: Any of 75+ envelope presets (Basic, Exponential, Multi-Stage, LFO, Organic, Glitch, Percussion, Complex)
+     - **Tempo Sync**: Same musical divisions as LFOs (8bars, 4bars, 2bars, 1bar, 1/2, 1/4, 1/8, 1/16, 1/32, dotted, triplets)
+     - **Free-Running Mode**: Period in seconds (0.01s to 10s) when sync is "Free"
+     - **Loop Modes**: cycle (continuous), oneshot (play once), oneshot-hold (play once, hold final value)
+     - **Phase Offset**: 0-360 degrees
+     - **Depth**: 0-100%
+     - **Bipolar Toggle**: Output -1 to +1 (on) or 0 to +1 (off)
+     - **Retrigger Toggle**: Reset envelope on each note trigger
+   - New "Envelopes" tab in Modulation Panel UI
+   - Sources grouped in mod matrix dropdown: LFOs, Envelopes, Random, MIDI
+   - Quick presets: percussive, slowSwell, rhythmicGate, organicBreath, glitchy, complexMorph, bounce, ratchet
+
+2. **Files Created/Modified:**
+   - `src/audio/mod/EnvelopeModulator.ts` - NEW: EnvelopeModulator class + EnvelopeModulatorManager
+   - `src/audio/mod/LFO.ts` - Added env1-env6 to ModulationSource type, exported SYNC_VALUES
+   - `src/audio/mod/ModMatrix.ts` - Added envelope manager integration, getSourceValue handles env1-6
+   - `src/audio/mod/index.ts` - Export new envelope modulator types
+   - `src/audio/engine/GrooveboxEngine.ts` - Added envelopeManager, getEnvModParams/setEnvModParams
+   - `src/ui/ModulationPanel.tsx` - Added Envelopes tab, EnvModControl component, grouped MOD_SOURCES
+   - `src/ui/ModulationPanel.css` - Styling for envelope modulator controls
+   - `src/App.tsx` - Added envModParams state and handleEnvModChange handler
+
+3. **API Methods Added to GrooveboxEngine:**
+   ```typescript
+   engine.getEnvModParams();  // Returns EnvelopeModulatorParams[] for all 6 envelopes
+   engine.getEnvModParam(index);  // Get single envelope params (0-5)
+   engine.setEnvModParams(index, params);  // Set params for specific envelope
+   ```
+
+### Previous Work (2024-12-06):
+
+1. **Elektron-Style Parameter Locks (P-Locks) - COMPLETE**
+   - Per-step parameter overrides that "latch" until the next trig
+   - P-lock edit mode: right-click step → toggle P-Lock Edit → tweak parameters
+   - Parameters merge: modulation → latchedParams → direct step paramLocks
+   - 51 lockable parameters across voice, filter, saturation, sends, and channel
+   - Visual indicators for p-locked steps (cyan dot, pulsing glow when editing)
+   - Audition button to preview just the edited step
+   - New ParamLockManager class for state management
+   - Full API: enterParamLockEditMode, setStepParamLock, triggerParamLockAudition, etc.
+
+2. **Filter P-Lock Bug Fixes (Latest Session) - COMPLETE**
+   - Fixed filter cutoff value range mismatch (Three Sisters 0-1 vs Wasp/SEM/Moog 20-20000 Hz)
+   - Added range validation in VoiceManager.applyChannelPLocks()
+   - Fixed filter p-lock state bleeding when changing filter types in edit mode
+   - Now clears old filterCutoff/filterResonance/filterSpan when filter type changes
+   - Fixed filter from previous edit session persisting when entering new step's p-lock edit
+   - Added restoreToBaseState() methods to restore mixer to base channel state on edit mode entry
+
+3. **Plaits Engine Improvements - COMPLETE**
+   - **Individual Engine Selection**: Each of 16 Plaits engines is now a separate voice type:
+     - Melodic: plaits-va, plaits-waveshaper, plaits-fm, plaits-formant, plaits-additive, plaits-wavetable, plaits-chords, plaits-speech
+     - Percussion: plaits-grain, plaits-noise, plaits-particle, plaits-string, plaits-modal, plaits-kick, plaits-snare, plaits-hihat
+   - **Per-Step Note Sequencing**: Melodic engines (0-7) and pitched percussion (string, modal) now have per-step note sliders
+   - **Global Scale Controls**: Root/scale/octave moved from TrackControls to Transport (global for all melodic tracks)
+   - **Octave Transposition**: Changing octave transposes all step notes across all melodic tracks
+   - **Engine-Specific Labels**: UI shows correct parameter labels per engine (e.g., "Chord Type" for Chords, "FM Index" for FM)
+   - **LPG-Only Envelopes**: Removed external ADSR - Plaits uses internal LPG via Decay parameter
+   - **Removed FM Amount Control**: Was causing chirpy sounds, not typically user-facing
+   - **Helper Functions Added**: `isPlaitsVoice()`, `isPlaitsmelodicEngine()`, `isPlaitsPitchedPercEngine()`, `needsNoteSequencing()`, `getPlaitsEngineNumber()`
+
+### Previous Work (2024-12-05):
+
+1. **Multi-Breakpoint Looping Envelopes - COMPLETE**
+   - Replaced fixed ADSR/LFO envelopes with fully drawable, cycling envelopes
+   - 2-16 breakpoints per envelope that users can click/drag
+   - 6 curve types per segment: exp, linear, sharp, punch, swell, step
+   - User-defined period (0.05s to 10s)
+   - Bipolar amount control (-1 to +1)
+   - Continuous looping while voice is active
+   - Canvas-based EnvelopeEditor component with right-click context menu
+   - Completely rewrote complex-morph-processor.js for phase-based cycling
+
+2. **Empty Initialization - COMPLETE**
+   - Removed all pre-programmed demo patterns from App.tsx
+   - App now starts with completely empty patterns on all tracks
+   - No kicks on 1/5/9/13, no snares, no hats, no bass, no morph triggers
+   - User programs their own steps from scratch
+
+3. **Envelope Preset System - COMPLETE (NEW)**
+   - 70+ Zadar-inspired envelope presets across 8 categories:
+     - Basic (flat, AD, ramp, triangle, etc.)
+     - Exponential (exp attack/decay, punch, swell)
+     - Multi-Stage (double/triple peak, staircase, bounce)
+     - LFO (sine, square, saw, pulse, tremolo)
+     - Organic (breath, drift, ripple, flutter)
+     - Glitch (random, burst, bitcrush, sample & hold)
+     - Percussion (kick, snare, hihat, clap, tom)
+     - Complex (gate sequence, harmonic, ratchet, granular)
+   - Preset menu in EnvelopeEditor with category navigation
+   - Each preset includes default period and description
+
+4. **Loop Mode Control - COMPLETE (NEW)**
+   - Added `loopMode` property to CyclingEnvelope interface
+   - Three modes:
+     - `cycle`: Loops forever (default, wraps phase from 1 to 0)
+     - `oneshot`: Plays once then holds at final breakpoint value
+     - `oneshot-hold`: Same as oneshot (plays once, holds final value)
+   - Loop mode selector dropdown in EnvelopeEditor
+   - AudioWorklet updated to handle one-shot envelope behavior
+
+5. **Files Created/Modified:**
+   - `src/audio/voices/EnvelopePresets.ts` - NEW: 70+ Zadar-inspired presets
+   - `src/audio/voices/ComplexMorphVoice.ts` - Added LoopMode type and loopMode property
+   - `public/worklets/complex-morph-processor.js` - One-shot envelope support
+   - `src/ui/EnvelopeEditor.tsx` + `.css` - Preset menu and loop mode controls
+   - `src/ui/ComplexMorphPanel.tsx` - Added loopMode to default envelopes
+   - `src/audio/voices/index.ts` - Fixed CurveType export conflict
+
+5. **Universal Voice Types - COMPLETE (NEW)**
+   - Any track can now use any voice type (FM Drum, FM Melodic, Noise, Complex Morph)
+   - VoicePanel includes Complex Morph in voice type selector
+   - ComplexMorphPanel has voice type selector to switch to other voice types
+   - Dynamic switching between voice types with proper preset handling
+
+6. **Conditional Trigs (Elektron-style A:B) - COMPLETE (NEW)**
+   - Added `ConditionalTrig` interface with `a` (which cycle) and `b` (total cycles)
+   - Added `condition` property to `StepParams` interface
+   - Cycle counter tracking per track in Sequencer
+   - Conditional logic: step only triggers on Ath repetition of every B pattern cycles
+   - Examples:
+     - `1:2` = triggers on 1st of every 2 cycles
+     - `2:2` = triggers on 2nd of every 2 cycles
+     - `3:4` = triggers on 3rd of every 4 cycles
+     - `7:8` = triggers on 7th of every 8 cycles
+   - UI: COND selector in PatternGrid step editor (right-click any step)
+   - Visual indicator on steps showing condition (e.g., "3:4") in orange
+
+7. **Files Created/Modified for Phase 5.5:**
+   - `src/audio/engine/Sequencer.ts` - ConditionalTrig type, cycle counter, conditional logic
+   - `src/audio/engine/index.ts` - Export ConditionalTrig type
+   - `src/ui/PatternGrid.tsx` + `.css` - COND selector and visual indicator
+   - `src/ui/VoicePanel.tsx` - Added Complex Morph to voice types
+   - `src/ui/ComplexMorphPanel.tsx` - Added voice type selector
+
+### Current State:
+
+- All Phase 1-5.5 features complete and integrated
+- Dev server running at http://localhost:5173/
+- **NEW: 6 Envelope Modulators as Mod Sources** - envelope-shaped modulation with 75+ presets
+  - Available in mod matrix: Env 1-6 alongside LFOs
+  - Tempo sync or free-running (seconds)
+  - Loop modes: cycle, oneshot, oneshot-hold
+- **Elektron-style parameter locks (p-locks)** - per-step parameter overrides with latching
+- **16 Plaits synthesis engines available** (via @vectorsize/woscillators):
+  - 8 melodic engines (VA, Waveshaper, FM, Formant, Additive, Wavetable, Chords, Speech)
+  - 8 percussion engines (Grain Cloud, Filtered Noise, Particle Noise, String, Modal, Kick, Snare, Hi-Hat)
+  - Melodic engines support scale/mode/note sliders like bass engine
+  - 90+ presets across all engines
+- Complex Morph voices now have:
+  - Fully drawable, looping envelopes
+  - 70+ Zadar-inspired envelope presets
+  - Loop mode control (cycle/oneshot/oneshot-hold)
+- Universal voice types: any track can use any voice (8 voice types total)
+- Conditional trigs: Elektron-style A:B pattern conditions
+- App initializes with empty patterns (user must program steps)
+
+### 8. **Sample Voice Type - COMPLETE (NEW)**
+
+Added new voice type: `sample` with two modes:
+
+**Standard Mode:**
+- Sample playback with start point control
+- Pitch shifting (-24 to +24 semitones)
+- Forward/reverse playback direction
+- Full ADSR envelope (Attack, Decay, Sustain, Release)
+- Lowpass filter with cutoff and resonance
+- Highpass filter with cutoff and resonance
+
+**Granular Mode:**
+- AudioWorklet-based grain synthesis (`sample-processor.js`)
+- Start position with scan speed (0-8x, 0 = frozen)
+- Grain length (1ms - 1000ms)
+- Grain density (1-100 grains/sec)
+- Spread (position variance)
+- Stereo grain panning
+- Hanning window envelope per grain
+
+**Files Created:**
+- `src/audio/voices/SampleVoice.ts` - Full voice implementation
+- `public/worklets/sample-processor.js` - Granular AudioWorklet
+- `src/ui/SamplePanel.tsx` + `.css` - UI with waveform display
+
+**Files Modified:**
+- `src/audio/voices/VoiceManager.ts` - Added sample voice type support
+- `src/audio/voices/index.ts` - Export SampleVoice
+- `src/audio/engine/index.ts` - Export SampleVoiceParams types
+- `src/audio/engine/GrooveboxEngine.ts` - Added getVoice() method, SampleVoiceParams type
+- `src/ui/VoicePanel.tsx` - Added Sample to VOICE_TYPES
+- `src/ui/index.ts` - Export SamplePanel
+- `src/App.tsx` - Added Sample 1/2 tracks, SampleVoiceParams in handleParamChange
+
+**8 Presets:**
+- `default` - Standard mode, neutral settings
+- `oneShot` - Quick decay, no sustain
+- `pad` - Slow attack/release, filtered
+- `granularFreeze` - Frozen scan, texture
+- `granularTexture` - Slow scan, stereo spread
+- `granularStutter` - Fast scan, short grains
+- `reverse` - Reverse playback
+- `filtered` - Heavy LP/HP filtering
+
+**UI Features:**
+- Drag & drop / file picker sample loading
+- Canvas-based waveform display with automatic refresh on sample load
+- Clickable waveform for start point
+- Mode toggle (Standard / Granular)
+- All parameters with sliders
+
+**Bug Fixes (2024-12-05):**
+- Fixed ModMatrix "range is not iterable" error - added grainDensity/grainLength to DESTINATION_RANGES
+- Fixed sample pitch playing too fast - removed pitch from sample voice modulation mapping (Hz vs semitones mismatch)
+- Fixed granular mode playing on top of standard mode - added releaseGrains() call when switching modes
+- Fixed waveform not updating after sample load - added refreshKey prop
+- Fixed SampleVoiceParams not in type unions - added to GrooveboxEngine.updateVoiceParams() and App.tsx handleParamChange()
+
+### 9. **Per-Channel Filter Effect - COMPLETE (NEW)**
+
+Added 4 analog-modeled filter types per channel, placed before saturation in the signal chain:
+
+**Filter Types:**
+1. **Bypass** - Signal passes through unprocessed
+
+2. **Three Sisters** (Mannequins multi-mode SVF)
+   - Freq (center frequency 0-100%)
+   - Span (frequency spread for low/high bands)
+   - Quality (resonance or anti-resonance)
+   - Mode (Crossover vs Formant)
+   - Output selector (Low, Centre, High, or All)
+
+3. **Wasp** (EDP Wasp dirty CMOS filter)
+   - Cutoff (20Hz - 20kHz)
+   - Resonance (0-100%)
+   - Mode (LP, BP, HP, Notch)
+   - Drive (0-100%)
+   - Chaos (0-100% for CMOS instability)
+
+4. **SEM** (Oberheim SEM state-variable)
+   - Cutoff (20Hz - 20kHz)
+   - Resonance (0-100%)
+   - Morph (LP → Notch → HP)
+   - Drive (0.1-10x)
+
+5. **Moog** (24dB/oct ladder filter)
+   - Cutoff (20Hz - 20kHz)
+   - Resonance (0-100%)
+   - Drive (0-100%)
+   - Warmth (0-100%)
+
+**Technical Details:**
+- All filters implemented as AudioWorklet processors
+- Filter chain: Input → Filter → Saturation → Volume → Pan → Bus
+- Each filter preserves exact DSP algorithms from user's existing filter implementations
+- Three Sisters: 6-pole SVF with crossover/formant modes
+- Wasp: CMOS-style chaos and asymmetric drive
+- SEM: LP/Notch/HP morph with analog drift modeling
+- Moog: 4-pole ladder with thermal drift and transistor saturation
+
+**Files Created:**
+- `src/audio/fx/FilterEffect.ts` - Filter effect class with all 4 types
+- `public/filter-processors.js` - AudioWorklet processors (Three Sisters, Wasp, SEM, Moog Ladder)
+- `src/ui/FilterPanel.tsx` + `FilterPanel.css` - UI component with type selector and per-filter controls
+
+**Files Modified:**
+- `src/audio/fx/Mixer.ts` - Added filter to channel chain (before saturation), FilterParams in ChannelParams
+- `src/audio/fx/index.ts` - Export FilterEffect, FILTER_TYPES, and related types
+- `src/ui/FXPanel.tsx` - Integrated FilterPanel before saturation section
+- `src/ui/index.ts` - Export FilterPanel
+- `src/audio/engine/GrooveboxEngine.ts` - Register filter worklet processors on init
+
+**UI Features:**
+- 5 filter type buttons (Bypass, Three Sisters, Wasp, SEM, Moog)
+- Per-filter parameter groups with labeled controls
+- Compact design matching existing FX panel styling
+- Blue accent color (#44aaff) for filter section
+
+---
+
+### 10. **Plaits Synthesis Engines (Mutable Instruments) - COMPLETE (UPDATED 2024-12-06)**
+
+Added 16 Plaits synthesis engines via @vectorsize/woscillators WebAssembly AudioWorklet.
+
+**MAJOR UPDATE (2024-12-06):** Individual engine selection + per-step note sequencing for all pitched voices
+
+**Voice Types (22 total - each engine is now a separate voice type):**
+
+**Plaits Melodic Engines (0-7)** - Per-step note sequencing like FM-Melodic:
+| Voice Type | Engine | Name | Description |
+|------------|--------|------|-------------|
+| `plaits-va` | 0 | Virtual Analog | Detuned VA oscillators with variable waveforms |
+| `plaits-waveshaper` | 1 | Waveshaper | Variable slope triangle with waveshaper/folder |
+| `plaits-fm` | 2 | FM | 2-operator FM synthesis with variable feedback |
+| `plaits-formant` | 3 | Formant | Two controllable formants (VOSIM, Pulsar, Grainlet) |
+| `plaits-additive` | 4 | Additive | 24-harmonic additive oscillator |
+| `plaits-wavetable` | 5 | Wavetable | 4 banks of 8x8 wavetables |
+| `plaits-chords` | 6 | Chords | Chord generator with string/organ emulation |
+| `plaits-speech` | 7 | Speech | Speech synthesis (formant, SAM, LPC) |
+
+**Plaits Percussion Engines (8-15):**
+| Voice Type | Engine | Name | Description | Notes |
+|------------|--------|------|-------------|-------|
+| `plaits-grain` | 8 | Grain Cloud | Granular with variable pitch randomization | No pitch |
+| `plaits-noise` | 9 | Filtered Noise | Clocked noise with resonant filter | No pitch |
+| `plaits-particle` | 10 | Particle Noise | 8-layer dust with resonators | No pitch |
+| `plaits-string` | 11 | Inharmonic String | Karplus-Strong with burst excitation | **Has per-step notes** |
+| `plaits-modal` | 12 | Modal Resonator | Mallet/dust-excited modal synthesis | **Has per-step notes** |
+| `plaits-kick` | 13 | Analog Kick | Analog kick drum emulation | No pitch |
+| `plaits-snare` | 14 | Analog Snare | Analog snare emulation | No pitch |
+| `plaits-hihat` | 15 | Analog Hi-Hat | Analog hi-hat emulation | No pitch |
+
+**Common Parameters:**
+- `engine`: 0-15 (automatically set based on voice type)
+- `note`: 0-127 (MIDI note)
+- `harmonics`: 0-1 (engine-dependent timbre control, labeled per engine)
+- `timbre`: 0-1 (engine-dependent timbre control, labeled per engine)
+- `morph`: 0-1 (engine-dependent timbre control, labeled per engine)
+- `decay`: 0-1 (internal LPG decay)
+- `fade`: 0-1 (crossfade between outputs)
+- `volume`: 0-1
+- `glideTime`: 0-2s (melodic engines only)
+- `glideEnabled`: boolean (melodic engines only)
+
+**Engine-Specific Parameter Labels (from PLAITS_ENGINE_INFO):**
+Each engine has custom labels for harmonics/timbre/morph. For example:
+- Virtual Analog: Detune / Square-Pulse / Saw-Triangle
+- FM: Ratio / FM Index / Feedback
+- Chords: Chord Type / Inversion / Waveform
+- Modal Resonator: Material / Excitation / Decay
+
+**Files Created/Modified (2024-12-06):**
+- `src/audio/voices/VoiceManager.ts` - Added 16 individual voice types, helper functions:
+  - `isPlaitsVoice()` - Check if any Plaits type
+  - `isPlaitsmelodicEngine()` - Check if melodic (0-7)
+  - `isPlaitsPitchedPercEngine()` - Check if pitched percussion (string, modal)
+  - `needsNoteSequencing()` - Check if voice needs per-step notes
+  - `getPlaitsEngineNumber()` - Get engine number from voice type
+- `src/ui/VoicePanel.tsx` - Engine-specific control labels, organized optgroups
+- `src/App.tsx` - Uses `needsNoteSequencing()` for isMelodic prop
+- `src/ui/Transport.tsx` - Global scale controls (root/scale/octave)
+- `src/ui/TrackControls.tsx` - Removed per-track scale (now global)
+- `src/audio/engine/Sequencer.ts` - Global scale config
+- `src/audio/engine/GrooveboxEngine.ts` - Global scale API
+- `src/ui/PatternGrid.tsx` - Octave transposition, closest note matching
+
+**Key Changes (2024-12-06):**
+
+1. **Individual Engine Voice Types** - Each of 16 Plaits engines is now a separate voice type (plaits-va, plaits-fm, plaits-modal, etc.) instead of generic "plaits-melodic" or "plaits-perc"
+
+2. **Per-Step Note Sequencing** - Melodic engines (0-7) and pitched percussion (string, modal) now show per-step note sliders above the pattern grid, just like FM-Melodic
+
+3. **Global Scale/Root/Octave** - Scale settings moved from per-track TrackControls to global Transport bar. All melodic tracks share the same scale.
+
+4. **Octave Transposition** - Changing octave automatically transposes all step notes across all melodic tracks
+
+5. **Engine-Specific Labels** - UI shows correct parameter labels for each engine (e.g., "Chord Type" for Chords engine, "FM Index" for FM engine)
+
+6. **LPG-Only Envelopes** - Removed external ADSR controls. Plaits uses only its internal LPG (Low Pass Gate) via the Decay parameter
+
+7. **No FM Amount** - Removed FM modulation control from UI (was causing chirpy sounds, not typically user-facing)
+
+**Usage:**
+```typescript
+// Each engine is a separate voice type
+engine.assignVoice({
+  trackId: 'lead',
+  voiceType: 'plaits-fm',  // Specific engine
+  preset: 'fmBell',
+  note: 60
+});
+
+// Pitched percussion with note sequencing
+engine.assignVoice({
+  trackId: 'bells',
+  voiceType: 'plaits-modal',  // Modal resonator - has note sliders
+  preset: 'modalBell'
+});
+
+// Set global scale (affects all melodic tracks)
+engine.setGlobalScale({ root: 0, scale: 'minor', octave: 3 });
+```
+
+---
+
+### 11. **Per-Channel Saturation Effect - COMPLETE (NEW)**
+
+Added Culture Vulture-inspired per-channel saturation with 4 circuit types:
+
+**Saturation Modes:**
+- **Tape** - Gentle arctan-based saturation with musical compression
+- **Triode** - Warm, asymmetric tube emulation with even harmonics
+- **Pentode** - Brighter, more aggressive tube response
+- **Transformer** - Thick, symmetric compression with soft knee
+
+**Parameters:**
+- Drive (0-100%) - Pre-gain before saturation (1x-20x multiplier)
+- Mix (0-100%) - Dry/wet blend
+- Bias (-100% to +100%) - Asymmetric clipping offset
+- Harmonics (Even/Odd/Both) - Harmonic emphasis mode
+
+**Technical Details:**
+- 4x oversampled WaveShaperNode for high quality
+- Automatic gain compensation based on drive
+- Parallel dry/wet routing for transparent mixing
+- Inserted in channel strip: Input → Saturation → Volume → Pan → Bus
+
+**Files Created:**
+- `src/audio/fx/SaturationEffect.ts` - Full effect implementation with 4 formulas
+
+**Files Modified:**
+- `src/audio/fx/Mixer.ts` - Added saturation to ChannelParams, per-channel SaturationEffect instances
+- `src/audio/fx/index.ts` - Export SaturationEffect and types
+- `src/ui/FXPanel.tsx` - Saturation UI in Track Sends section (mode buttons, sliders)
+- `src/ui/FXPanel.css` - Saturation styling (orange accent color)
+
+**UI Features:**
+- 4 mode buttons (Tape, Triode, Pentode, Transformer) with tooltips
+- Drive and Mix sliders with percentage display
+- Advanced section with Bias slider and Harmonics selector (Even/Odd/Both)
+- Orange accent color (#ff8844) to differentiate from cyan Mimeophon controls
+
+### 12. **Elektron-Style Parameter Locks (P-Locks) - COMPLETE (NEW 2024-12-06)**
+
+Added per-step parameter override system inspired by Elektron hardware (Digitakt, Digitone, etc.):
+
+**Core Concept:**
+- Any step can store parameter overrides ("locks") that apply when that step triggers
+- Locked parameters persist ("latch") until the next trig on the same track
+- At the next trig, values snap to whatever that step dictates (its locks, or normal base values)
+- Trig-less steps between trigs don't change latched parameter values
+- P-locks take precedence over modulation
+
+**P-Lock Edit Mode:**
+- Right-click any step to open step editor
+- Toggle "P-Lock Edit" button to enter/exit p-lock editing mode
+- While editing, parameter changes go to step locks instead of base params
+- "Audition" button triggers just that step to preview changes
+- "Clear P-Locks" removes all locks from the step
+
+**Parameter Merging Priority:**
+1. Direct step paramLocks (highest priority)
+2. Latched params from previous trig
+3. Modulation (can be overridden by p-locks)
+
+**Data Model:**
+```typescript
+interface ParamLocks {
+  [paramId: string]: number;  // e.g., { filterCutoff: 0.8, op1Index: 0.5 }
+}
+
+interface StepParams {
+  // ... existing params
+  paramLocks?: ParamLocks;     // P-lock values for this step
+  hasParamLocks?: boolean;     // Flag for quick detection
+}
+
+interface TrackLatchedState {
+  latchedParams: ParamLocks;   // Currently latched values
+  lastTrigStep: number;        // Which step triggered last
+}
+```
+
+**Lockable Parameters (51 total):**
+- Voice: pitch, pitchEnvAmount, pitchEnvDecay, op1Ratio, op1Index, op1Feedback, op2Ratio, op2Index, op2ToOp1, ampAttack, ampDecay, noiseMix, noiseDecay, noiseFilterFreq
+- Filter: filterCutoff, filterResonance, filterMode, filterEnvAmount
+- Saturation: saturationDrive, saturationBias, saturationMix
+- Sends: sendDelay1-4, sendReverb
+- Channel: volume, pan
+- Plaits: plaitsHarmonics, plaitsTimbre, plaitsMorph, plaitsFM, plaitsDecay
+
+**Files Created:**
+- `src/audio/engine/ParamLockManager.ts` - Core state management:
+  - `ParamLockManager` class for edit mode and latched state
+  - Edit mode tracking (which step is being edited)
+  - Per-track latched parameters
+  - Audition callback system
+  - `shouldRouteToStepLocks()` for parameter routing
+
+**Files Modified:**
+- `src/audio/engine/Sequencer.ts`:
+  - Added `hasParamLocks` to StepParams
+  - Added `latchedParams` to TriggerEvent
+  - Integrated latching logic in processStep()
+- `src/audio/engine/GrooveboxEngine.ts`:
+  - 15+ new API methods for p-lock system
+  - Clears latched params on stop()
+- `src/audio/voices/VoiceManager.ts`:
+  - Updated handleTrigger() to merge p-locks with correct priority
+- `src/ui/PatternGrid.tsx` + `.css`:
+  - P-Lock section in step editor (toggle, audition, clear, locked params list)
+  - Visual indicators for p-locked steps (`.has-plocks` class)
+  - Pulsing animation for step being edited (`.plock-editing`)
+- `src/App.tsx`:
+  - P-lock routing in handleParamChange() and handleChannelChange()
+
+**API Methods:**
+```typescript
+// Edit Mode
+engine.enterParamLockEditMode(trackId, stepIndex);
+engine.exitParamLockEditMode();
+engine.toggleParamLockEditMode(trackId, stepIndex);
+engine.getParamLockEditState();
+engine.isEditingParamLock(trackId, stepIndex);
+
+// P-Lock Values
+engine.setStepParamLock(trackId, stepIndex, paramId, value);
+engine.removeStepParamLock(trackId, stepIndex, paramId);
+engine.clearStepParamLocks(trackId, stepIndex);
+engine.getStepParamLocks(trackId, stepIndex);
+engine.hasStepParamLocks(trackId, stepIndex);
+
+// Audition
+engine.triggerParamLockAudition();
+```
+
+**Visual Indicators:**
+- Steps with p-locks show cyan dot indicator
+- Step being edited has pulsing cyan glow
+- Locked params list shows which parameters are locked
+
+**Usage Example:**
+1. Click any track, program some steps
+2. Right-click a step to open the step editor
+3. Click "P-Lock Edit" to enter edit mode
+4. Move any voice parameter (e.g., filter cutoff)
+5. Click "Audition" to hear just that step with the locked parameter
+6. The parameter will "latch" when that step triggers during playback
+7. Exit p-lock mode to return to normal parameter editing
+
+**Bug Fixes (2024-12-06):**
+
+1. **Filter P-Lock Value Range Mismatch** - FIXED
+   - Problem: Three Sisters uses normalized 0-1 cutoff values, while Wasp/SEM/Moog use Hz (20-20000)
+   - When p-locks from one filter type were applied to another, AudioWorklet threw warnings like `cutoff.setValueAtTime value 0.5 outside nominal range [20, 20000]`
+   - Fix: Added range validation in `VoiceManager.applyChannelPLocks()`:
+     - Wasp/SEM/Moog: Only apply cutoff if `cutoff >= 20` (Hz range)
+     - Three Sisters: Only apply cutoff if `cutoff <= 1` (normalized range)
+   - File: `src/audio/voices/VoiceManager.ts`
+
+2. **Filter P-Lock State Bleeding Between Types** - FIXED
+   - Problem: When changing filter type in p-lock edit mode, old cutoff/resonance/span values weren't cleared
+   - This caused mixed filter values to persist incorrectly
+   - Fix: In `App.tsx handleChannelChange()`, when filter type changes, clear old filter p-locks:
+     ```typescript
+     engine.removeStepParamLock(trackId, editState.stepIndex, 'filterCutoff');
+     engine.removeStepParamLock(trackId, editState.stepIndex, 'filterResonance');
+     engine.removeStepParamLock(trackId, editState.stepIndex, 'filterSpan');
+     ```
+   - File: `src/App.tsx`
+
+3. **Filter From Previous Edit Session Persisting** - FIXED
+   - Problem: When entering p-lock edit mode on a new step, the mixer still showed filter state from the previous edit session instead of the base state
+   - Fix: Added methods to restore mixer to base channel state:
+     - `VoiceManager.getBaseChannelState(trackId)` - Returns stored base state
+     - `VoiceManager.restoreToBaseState(trackId)` - Restores mixer to base state
+     - `GrooveboxEngine.restoreToBaseChannelState(trackId)` - Public API method
+     - `GrooveboxEngine.getBaseFilterType(trackId)` - Get base filter type
+   - Updated `App.tsx` p-lock edit state handler to call `restoreToBaseChannelState()` when entering edit mode
+   - Files: `src/audio/voices/VoiceManager.ts`, `src/audio/engine/GrooveboxEngine.ts`, `src/App.tsx`
+
+4. **P-Locks From Previous Step Bleeding Into Next Step** - FIXED
+   - Problem: When step 1 had filter p-locks and step 2 had only delay send p-lock, the filter from step 1 would "bleed" into step 2's sound
+   - Cause: `updateLatchedParams()` was MERGING new p-locks with previous latched state instead of replacing
+   - Fix: Changed latched param logic to REPLACE instead of merge when a step has p-locks
+   - This matches Elektron behavior where each step's p-locks are independent - they define the complete sound for that trig
+   - File: `src/audio/engine/ParamLockManager.ts`
+
+**Filter P-Lock Parameters Added:**
+- `filterType` - Filter type encoded as number (bypass=0, wasp=1, sem=2, moog=3, threeSisters=4)
+- `filterCutoff` - Cutoff frequency (normalized 0-1 for Three Sisters, Hz 20-20000 for others)
+- `filterResonance` - Filter resonance
+- `filterSpan` - Three Sisters span parameter
+
+---
+
+### 14. **Comprehensive Modulation Destinations Overhaul - COMPLETE (NEW 2024-12-06)**
+
+Major overhaul of the modulation system to support track-aware destinations, all voice parameters, channel FX, and meta-modulation.
+
+**Track Targeting:**
+- `ModTrackTarget` type: `'all'` for all 12 tracks, or `1-12` for specific track
+- Routes can target individual tracks or apply globally
+- Helper functions: `getTrackIdsForTarget()`, `routeAppliesToTrack()`
+
+**Voice Destinations (per-track, based on voice type):**
+
+| Voice Type | Available Destinations |
+|------------|----------------------|
+| FM Drum | pitch, pitchEnvAmount, pitchEnvDecay, op1Ratio/Index/Feedback, op2Ratio/Index/ToOp1, ampAttack/Decay, noiseMix/Decay/FilterFreq |
+| FM Melodic | fmIndex, fmIndexEnvAmount, ampAttack/Decay, glideTime |
+| Noise | decay, metalAmount, clickAmount |
+| Complex Morph | pitch, ampAttack, ampDecay |
+| Sample | grainDensity, grainLength, ampAttack, ampDecay |
+| Ocean | oceanPitch, oceanGrainSize, oceanDensity, oceanPosition, oceanSpread, oceanHpfFreq, oceanLpfFreq, oceanVolume |
+| Plaits (all) | plaitsHarmonics, plaitsTimbre, plaitsMorph, plaitsFM, plaitsDecay, plaitsFade, glideTime (melodic only) |
+
+**Channel Destinations (per-track mixer/FX):**
+- **Filter:** filterCutoff, filterResonance, filterSpan, filterDrive, filterMorph, filterChaos, filterWarmth
+- **Saturation:** saturationDrive, saturationBias, saturationMix
+- **Sends:** delaySend1, delaySend2, delaySend3, delaySend4, reverbSend
+- **Mix:** volume, pan
+
+**Note Destination:**
+- `note` - For melodic tracks, modulates step note values (±24 semitones from base)
+
+**Global FX Destinations:**
+- **Mimeophon 1-4:** mim1Time/Feedback/Mix/Color/Halo (same for mim2, mim3, mim4)
+- **Reverb:** reverbSize, reverbDamping, reverbWidth, reverbWetLevel
+- **Master:** masterSaturation, masterTone
+
+**Meta-Modulation (modulate the modulators!):**
+- **LFO 1-4:** lfo1Rate/Depth/Phase (same for lfo2-4)
+- **Random 1-2:** random1Rate/Smoothing, random2Rate/Smoothing
+- **Envelope 1-6:** env1Period/Depth/Phase (same for env2-6)
+
+**Key Features:**
+1. **P-Lock Priority Maintained** - Modulation is subordinate to p-locks. The merge order ensures: step p-locks > latched p-locks > modulation
+2. **Voice-Type Awareness** - `VOICE_TYPE_DESTINATIONS` mapping ensures UI only shows relevant destinations for each track's assigned voice
+3. **`voiceSupportsNoteModulation()`** - Helper to check if voice type supports note sequencing
+4. **Dynamic Filter Mapping** - Channel filter destinations map to active filter type's parameters (Moog, Wasp, SEM, Three Sisters)
+
+**New Mod Presets:**
+- `metaModulation` - Envelope modulating LFO rate, random modulating LFO depth
+- `sendSweep` - LFOs sweeping delay sends, envelope on reverb
+- `saturationPulse` - LFO pulsing saturation drive
+- `mimeophonDrift` - Random drift on Mimeophon time/color/halo
+
+**Files Modified:**
+- `src/audio/mod/ModMatrix.ts` - Complete destination overhaul with new types, categories, ranges, and helpers
+- `src/audio/voices/VoiceManager.ts` - Added `applyChannelModulation()` for mixer parameter modulation, updated Ocean voice mapping
+
+**Usage:**
+```typescript
+// Route LFO1 to filter cutoff for track 3 only
+modMatrix.addRoute({
+  source: 'lfo1',
+  destination: 'filterCutoff',
+  depth: 0.5,
+  trackTarget: 3
+});
+
+// Route envelope to Mimeophon feedback (global FX)
+modMatrix.addRoute({
+  source: 'env1',
+  destination: 'mim1Feedback',
+  depth: 0.3
+});
+
+// Meta-modulation: LFO2 modulating LFO1's rate
+modMatrix.addRoute({
+  source: 'lfo2',
+  destination: 'lfo1Rate',
+  depth: 0.4
+});
+```
+
+---
+
+### Next Steps:
+
+**Recommended order:** Phase 6 → Phase 7
+
+Phase 6 (UX Polish) - Scene management, presets, visual feedback
+Phase 7 (Meta-Sequencing) - Cellular automata, rule systems, scene morphing
+
+---
+
+## FILE STRUCTURE (Current)
+
+```
+tQr4x/
+├── public/
+│   ├── filter-processors.js            ← NEW: Three Sisters, Wasp, SEM, Moog filters
+│   └── worklets/
+│       ├── master-clock-processor.js
+│       ├── freeverb-processor.js
+│       ├── complex-morph-processor.js  ← Phase-based cycling envelopes
+│       └── sample-processor.js         ← Granular synthesis worklet
+├── src/
+│   ├── audio/
+│   │   ├── engine/
+│   │   │   ├── GrooveboxEngine.ts
+│   │   │   ├── MasterClock.ts
+│   │   │   ├── ParamLockManager.ts       ← NEW: Elektron-style p-lock state management
+│   │   │   ├── Sequencer.ts              ← ConditionalTrig, cycle counter, p-lock latching
+│   │   │   └── index.ts
+│   │   ├── fx/
+│   │   │   ├── Delay.ts
+│   │   │   ├── FilterEffect.ts           ← NEW: 4 filter types (Three Sisters/Wasp/SEM/Moog)
+│   │   │   ├── MasterBus.ts
+│   │   │   ├── Mixer.ts                  ← Per-channel filter + saturation integration
+│   │   │   ├── Reverb.ts
+│   │   │   ├── SaturationEffect.ts       ← 4 circuit types (tape/triode/pentode/transformer)
+│   │   │   └── index.ts
+│   │   ├── mod/
+│   │   │   ├── EnvelopeModulator.ts        ← 6 envelope modulators as mod sources
+│   │   │   ├── LFO.ts
+│   │   │   ├── ModMatrix.ts                ← UPDATED: Comprehensive mod destinations
+│   │   │   ├── Randomizer.ts
+│   │   │   └── index.ts
+│   │   ├── music/
+│   │   │   ├── BasslineGenerator.ts
+│   │   │   └── Scale.ts
+│   │   └── voices/
+│   │       ├── ComplexMorphVoice.ts    ← Multi-breakpoint envelope types + LoopMode
+│   │       ├── Envelope.ts
+│   │       ├── EnvelopePresets.ts      ← 70+ Zadar-inspired presets
+│   │       ├── FMDrumVoice.ts
+│   │       ├── FMMelodicVoice.ts
+│   │       ├── NoiseVoice.ts
+│   │       ├── SampleVoice.ts          ← Sample playback + granular synthesis
+│   │       ├── PlaitsVoice.ts          ← NEW: Base Plaits voice with woscillators
+│   │       ├── PlaitsMelodicVoice.ts   ← NEW: Pitched engines 0-7 with scale support
+│   │       ├── PlaitsPercVoice.ts      ← NEW: Percussion engines 8-15
+│   │       ├── VoiceManager.ts         ← Added plaits-melodic/plaits-perc types
+│   │       └── index.ts
+│   ├── ui/
+│   │   ├── ComplexMorphPanel.tsx / .css  ← Uses EnvelopeEditor + voice type selector
+│   │   ├── EnvelopeEditor.tsx / .css     ← Canvas-based envelopes + preset menu + loop mode
+│   │   ├── FilterPanel.tsx / .css        ← NEW: Per-channel filter UI with 4 types
+│   │   ├── FXPanel.tsx / .css            ← Per-channel filter + saturation UI
+│   │   ├── SamplePanel.tsx / .css        ← Sample voice controls + waveform display
+│   │   ├── ModulationPanel.tsx / .css    ← 4 tabs: LFOs, Envelopes, Mod Matrix, Randomize
+│   │   ├── PatternGrid.tsx / .css        ← Conditional trig UI (COND selector)
+│   │   ├── TrackControls.tsx / .css
+│   │   ├── Transport.tsx / .css
+│   │   ├── VoicePanel.tsx / .css         ← Universal voice type selector
+│   │   └── index.ts
+│   ├── App.tsx / .css                    ← Empty pattern initialization
+│   ├── index.css
+│   └── main.tsx
+├── index.html
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── tQr4x_project_tracker.txt
+```
+
+---
+
+### ✅ STEP COPY/PASTE FEATURE - COMPLETE
+
+**Completed:** 2024-12-06
+
+**Goal:** Allow copying and pasting parameter-locked trigs as independent copies
+
+#### Files Modified:
+
+**Audio Engine (`src/audio/engine/`):**
+- `GrooveboxEngine.ts` - Added step clipboard functionality:
+  - `stepClipboard: StepParams | null` - Private storage for copied step data
+  - `clipboardListeners: Set<(hasData: boolean) => void>` - Clipboard state listeners
+  - `copyStep(trackId, stepIndex)` - Deep copies step including p-locks to clipboard
+  - `pasteStep(trackId, stepIndex)` - Pastes clipboard to target as independent copy
+  - `hasStepInClipboard()` - Check if clipboard has data
+  - `getClipboardStep()` - Get clipboard content (returns copy for preview)
+  - `clearClipboard()` - Empty the clipboard
+  - `onClipboardChange(callback)` - Subscribe to clipboard state changes
+
+**UI Components (`src/ui/`):**
+- `PatternGrid.tsx` - Added copy/paste UI and keyboard shortcuts:
+  - `hasClipboard` state tracking via engine subscription
+  - `handleCopyStep()` / `handlePasteStep()` handlers
+  - Keyboard shortcuts: Cmd+C/Cmd+V (Mac) or Ctrl+C/Ctrl+V (Windows)
+  - COPY/PASTE buttons in step editor panel
+- `PatternGrid.css` - Styling for copy/paste buttons
+- `ModulationPanel.tsx` - Fixed unused import warning
+
+#### Features:
+1. ✅ Deep copy of steps - all data including paramLocks and conditions
+2. ✅ Independent copies - pasted steps don't affect source
+3. ✅ Cross-track paste - copy from one track, paste to another
+4. ✅ Keyboard shortcuts - Cmd/Ctrl+C to copy, Cmd/Ctrl+V to paste
+5. ✅ UI buttons - COPY and PASTE in step editor
+6. ✅ Visual feedback - Paste button disabled when clipboard empty
+
+#### How to Use:
+1. Right-click a step to open the step editor
+2. Click COPY (or press Cmd/Ctrl+C) to copy the step
+3. Right-click another step to select it
+4. Click PASTE (or press Cmd/Ctrl+V) to paste
+5. The pasted step is fully independent - edit it without affecting the original
+
+
+---
+
+### ✅ PATTERN BANK SYSTEM (16 PATTERNS) - COMPLETE
+
+**Completed:** 2024-12-06
+
+**Goal:** Implement Elektron-style 16-pattern bank with copy/paste functionality
+
+#### Files Modified/Created:
+
+**Audio Engine (`src/audio/engine/`):**
+- `Sequencer.ts`:
+  - Added `PATTERN_BANK_SIZE = 16` constant
+  - Added `PatternBankSnapshot` interface for copy/paste operations
+  - Tracks now initialize with 16 patterns each (pattern-1 through pattern-16)
+  - `activePatternSlot` - Currently active pattern (1-16)
+  - `patternBankClipboard` - Storage for copy/paste
+  - `patternSlotListeners` - Subscribers to pattern changes
+  - New methods:
+    - `getActivePatternSlot()` / `setActivePatternSlot(slot)` - Switch patterns
+    - `isPatternSlotEmpty(slot)` - Check if any track has data
+    - `clearPatternSlot(slot)` - Reset slot to empty
+    - `copyPatternSlot(slot, mode, ...)` - Copy with 'engines' or 'all' mode
+    - `pastePatternSlot(slot, ...)` - Paste from clipboard
+    - `onPatternSlotChange(callback)` - Subscribe to changes
+    - `getPatternForSlot(trackId, slot)` - Get specific pattern
+- `GrooveboxEngine.ts` - Exposed pattern bank API:
+  - All pattern bank methods delegated to sequencer
+  - Integration with VoiceManager/Mixer for copy/paste of voice/channel configs
+- `index.ts` - Exported new types and constants
+
+**UI Components (`src/ui/`):**
+- `PatternBank.tsx` (NEW) - Pattern bank UI component:
+  - 16-slot grid (8x2 layout) with visual states
+  - Click to switch patterns
+  - Right-click context menu with copy/paste/clear
+  - Clipboard indicator
+  - Auto-refresh of slot states
+- `PatternBank.css` (NEW) - Styling for pattern bank:
+  - Empty vs populated slot indicators
+  - Active slot highlighting with glow
+  - Context menu styling
+  - Clipboard indicator badge
+- `index.ts` - Exported PatternBank component
+
+**App Integration (`src/`):**
+- `App.tsx`:
+  - Added PatternBank import
+  - Added refresh callbacks for voice/channel updates after paste
+  - Inserted PatternBank component below Transport
+
+#### Copy Modes:
+1. **"Copy Engines"** - Copies track configuration without triggers:
+   - Voice type, preset, params, note
+   - Filter, saturation, sends, volume, pan
+   - Performance settings (drift, fill, clock division)
+   
+2. **"Copy All"** - Copies everything including:
+   - All engine data from above
+   - All step triggers with velocities, microtiming, probability
+   - All p-locks and conditional trigs
+
+#### Features:
+1. ✅ 16 patterns per track (Elektron-style bank)
+2. ✅ Click pattern slot to switch instantly
+3. ✅ Empty vs populated visual indicators (dimmed vs green)
+4. ✅ Active pattern highlighted in cyan with glow
+5. ✅ Right-click context menu for operations
+6. ✅ "Copy Engines" - recreate track setup without trigs
+7. ✅ "Copy All" - full pattern clone with all data
+8. ✅ "Clear Pattern" - reset slot to blank slate
+9. ✅ "Paste" - apply clipboard to target slot
+10. ✅ Clipboard mode indicator shows what's copied
+11. ✅ Switching patterns is instantaneous (no reload)
+12. ✅ Blank patterns = blank slate for new setup
+
+#### UI Layout:
+```
+┌──────────────────────────────────────────────────┐
+│ Patterns                                     P1  │
+├──────────────────────────────────────────────────┤
+│ [1] [2] [3] [4] [5] [6] [7] [8]                 │
+│ [9] [10][11][12][13][14][15][16]                │
+└──────────────────────────────────────────────────┘
+  ↑           ↑
+  Active    Has data (green)
+```
+
+#### File Tree Update:
+```
+src/ui/
+├── PatternBank.tsx / .css    ← NEW: 16-pattern bank UI
+├── PatternGrid.tsx / .css
+├── ...
+```
+
+---
+
+### ✅ PATTERN SEQUENCER (ARRANGER) - COMPLETE
+
+**Completed:** 2024-12-06
+
+**Goal:** Allow users to sequence patterns for full arrangement playback
+
+#### Files Created/Modified:
+
+**Sequencer Logic (`src/audio/engine/Sequencer.ts`):**
+- Added `PatternSequencerCell` interface: `{ patternSlot: number | null, cycles: number }`
+- Added `PatternSequencerState` interface for UI state updates
+- Added 16 sequencer cells that hold pattern assignments
+- Pattern sequencer listens to Track 1's cycle count for timing
+- When Track 1 completes its cycles, advances to next non-empty cell
+- Loops back to first cell after completing all cells
+- Methods: `setPatternSequencerEnabled()`, `setPatternSequencerCell()`, `clearPatternSequencerCell()`, `getPatternSequencerState()`, `onPatternSequencerChange()`, `resetPatternSequencer()`, `clearPatternSequencer()`
+
+**Engine API (`src/audio/engine/GrooveboxEngine.ts`):**
+- All sequencer methods exposed through engine singleton
+
+**UI Component (`src/ui/PatternSequencer.tsx` + `.css`):**
+- Compact collapsible design (click +/- to expand/collapse)
+- 8x2 grid showing 16 cells
+- Click cell to edit (set pattern 1-16 and cycle count 1-16)
+- Right-click for context menu (edit/clear)
+- Visual indicators:
+  - Empty cells show just the index number (dimmed)
+  - Filled cells show pattern number (e.g., "P1") and cycle count (e.g., "x4")
+  - Active cell glows with accent color
+  - Cycles remaining shown in corner
+- ON/OFF toggle button to enable/disable the sequencer
+- Reset and Clear All buttons
+
+**Exports (`src/audio/engine/index.ts`, `src/ui/index.ts`):**
+- Added PatternSequencerCell and PatternSequencerState types
+- Exported PatternSequencer component
+
+**App Integration (`src/App.tsx`):**
+- Added PatternSequencer below PatternBank in pattern-bank-section
+
+#### Features:
+1. ✅ 16 cells for arranging patterns
+2. ✅ Each cell holds a pattern slot (1-16) and cycle count (1-16)
+3. ✅ Listens to Track 1's pattern cycles for timing
+4. ✅ Advances to next cell after completing user-defined cycles
+5. ✅ Loops back to first non-empty cell after completing all cells
+6. ✅ Same pattern can be placed in multiple cells
+7. ✅ Clear individual cells or all cells
+8. ✅ Reset to beginning
+9. ✅ Compact collapsible UI design
+10. ✅ Visual feedback for active cell and remaining cycles
+
+#### How to Use:
+1. Expand the Arranger panel (click +)
+2. Click a cell to assign a pattern and set cycle count
+3. Fill multiple cells to create an arrangement (e.g., P1 x4, P2 x2, P1 x2, P3 x4)
+4. Click "ON" to enable the arranger
+5. Press Play - Track 1's cycles will advance through the arrangement
+6. When it reaches the end, it loops back to the first cell
+
+#### UI Layout:
+```
+┌─────────────────────────────────────────────────────┐
+│ [+] Arranger        2 cells              [OFF]     │
+├─────────────────────────────────────────────────────┤
+│ [P1x4] [P2x2] [3]  [4]  [5]  [6]  [7]  [8]         │
+│ [9]    [10]  [11] [12] [13] [14] [15] [16]         │
+├─────────────────────────────────────────────────────┤
+│ [Reset] [Clear All]                                 │
+└─────────────────────────────────────────────────────┘
+```
+
+#### File Tree Update:
+```
+src/ui/
+├── PatternSequencer.tsx / .css  ← NEW: Pattern arranger UI
+├── PatternBank.tsx / .css
+├── PatternGrid.tsx / .css
+├── ...
+```
+
+---
+
+### ✅ WAV RECORDER WITH STICKY TRANSPORT - COMPLETE
+
+**Completed:** 2024-12-07
+
+**Goal:** Allow users to record their jams and download as WAV files, with transport controls always visible while scrolling
+
+#### Files Created:
+
+**Recording (`src/audio/recording/`):**
+- `WAVRecorder.ts` (NEW) - Audio recording and WAV encoding:
+  - Uses ScriptProcessorNode to capture stereo audio
+  - Encodes to 16-bit stereo WAV format
+  - Provides `start()`, `stop()`, `cancel()` methods
+  - `downloadWAV()` static method triggers file download
+  - State listener support for UI updates
+  - `RecorderState` interface: `{ isRecording, duration, sampleCount }`
+
+#### Files Modified:
+
+**Mixer (`src/audio/fx/Mixer.ts`):**
+- Added `recordingTap` GainNode positioned after master bus, before destination
+- Signal path: Master Bus → Recording Tap → Speakers
+- Added `getRecordingTap()` method for connecting recorder
+- Recording taps the final mixed/mastered output
+
+**Engine (`src/audio/engine/GrooveboxEngine.ts`):**
+- Added `recorder` property and `recorderListeners` set
+- New methods:
+  - `startRecording()` - Creates WAVRecorder, starts capture
+  - `stopRecording()` - Stops recording, returns WAV Blob
+  - `cancelRecording()` - Discards recording
+  - `isRecording` getter - Check recording state
+  - `recordingDuration` getter - Current recording length in seconds
+  - `onRecordingStateChange()` - Subscribe to state updates
+  - `downloadRecording()` - Trigger browser download
+
+**Exports (`src/audio/engine/index.ts`):**
+- Exported `RecorderState` type
+
+**Transport (`src/ui/Transport.tsx`):**
+- Added recording state: `isRecording`, `recordingDuration`, `lastRecording`
+- Added `recordingIntervalRef` for duration timer
+- New handlers:
+  - `handleStartRecording()` - Starts recording with timer
+  - `handleStopRecording()` - Stops and saves blob
+  - `handleDownloadRecording()` - Triggers download
+  - `formatDuration()` - Formats seconds as MM:SS
+- New UI elements:
+  - **REC** button (red themed) - Click to start recording
+  - **STOP REC** button (pulsing red) - Click to stop
+  - Duration display (MM:SS format in red)
+  - **DOWNLOAD** button (green themed) - Appears after stopping
+
+**Styling (`src/ui/Transport.css`):**
+- Added `flex-wrap: wrap` to transport for smaller screens
+- New `.transport-recording` container styles
+- `.record-btn` - Dark red background, red border on hover
+- `.record-btn.recording` - Bright red with pulsing glow animation
+- `@keyframes pulse-record` - Glowing animation for active recording
+- `.recording-duration` - Monospace red timer display
+- `.download-btn` - Green theme matching reset button
+
+**Sticky Transport (`src/App.css`):**
+- `.transport-section` now has:
+  - `position: sticky; top: 0;` - Sticks to top when scrolling
+  - `z-index: 100;` - Above content, below modals
+  - `background: #0d0d0d;` - Solid background to cover content
+  - `border-bottom: 1px solid #333;` - Visual separation
+  - Negative margins to extend full width
+
+#### Features:
+1. ✅ Record master output to WAV file
+2. ✅ 16-bit stereo WAV encoding (native sample rate)
+3. ✅ Real-time duration display (MM:SS)
+4. ✅ Pulsing red button animation while recording
+5. ✅ One-click download after stopping
+6. ✅ Auto-generated filename with timestamp
+7. ✅ Transport stays visible while scrolling (sticky header)
+8. ✅ Clean signal path: taps after master bus processing
+
+#### Recording Signal Path:
+```
+Voices → Mixer → Master Bus → Recording Tap → Speakers
+                                    ↓
+                              ScriptProcessor
+                                    ↓
+                              Float32 Buffers
+                                    ↓
+                              WAV Encoder
+                                    ↓
+                              Download Blob
+```
+
+#### How to Use:
+1. Click **REC** in the transport to start recording
+2. Button changes to **STOP REC** with pulsing red glow
+3. Timer shows recording duration (e.g., "01:23")
+4. Click **STOP REC** when done
+5. **DOWNLOAD** button appears
+6. Click **DOWNLOAD** to save as WAV file
+7. File auto-named: `tQr4x-recording-YYYY-MM-DDTHH-MM-SS.wav`
+
+#### File Tree Update:
+```
+src/audio/
+├── recording/
+│   └── WAVRecorder.ts         ← NEW: Recording/encoding
+├── engine/
+│   ├── GrooveboxEngine.ts     ← Recording methods
+│   └── index.ts               ← RecorderState export
+└── fx/
+    └── Mixer.ts               ← Recording tap point
+
+src/ui/
+├── Transport.tsx              ← Record/download UI
+├── Transport.css              ← Recording button styles
+└── ...
+
+src/
+└── App.css                    ← Sticky transport section
+```
+
+---
+
+### ✅ FILTER & SATURATION FOR SAMPLE/OCEAN VOICES - COMPLETE
+
+**Completed:** 2024-12-07
+
+**Goal:** Add the same per-channel filter and saturation controls to Sample and Ocean voice panels that other voice types have
+
+#### Files Modified:
+
+**UI Components (`src/ui/`):**
+- `SamplePanel.tsx`:
+  - Added imports for ChannelParams, FilterParams, HarmonicEmphasis, SATURATION_MODES, FilterPanel
+  - Extended SamplePanelProps interface with `channelParams?: ChannelParams` and `onChannelChange?: (trackId: string, params: Partial<ChannelParams>) => void`
+  - Added FilterPanel component after Output section
+  - Added full saturation controls with mode selector, drive, mix, bias, and harmonics (matching other voice panels)
+
+- `OceanPanel.tsx`:
+  - Same changes as SamplePanel - added filter and saturation controls
+  - Extended OceanPanelProps with channelParams and onChannelChange
+  - Added FilterPanel and saturation UI after Volume section
+
+**App Integration (`src/App.tsx`):**
+- Updated SamplePanel and OceanPanel JSX to pass `channelParams` and `onChannelChange` props
+- Sample and Ocean tracks now have full filter and saturation control like all other voice types
+
+#### Features:
+1. ✅ Sample voice now has per-channel filter (Three Sisters, Wasp, SEM, Moog, Bypass)
+2. ✅ Sample voice now has per-channel saturation (Tape, Triode, Pentode, Transformer)
+3. ✅ Ocean voice now has per-channel filter
+4. ✅ Ocean voice now has per-channel saturation
+5. ✅ All saturation controls: mode selector, drive, mix, bias, harmonics
+6. ✅ Consistent UI across all voice types
+
+---
+
+### ✅ COMPREHENSIVE MODULATION DESTINATIONS UPDATE - COMPLETE
+
+**Completed:** 2024-12-07
+
+**Goal:** Ensure all voice types have complete modulation destinations and parameter lock support
+
+#### Files Modified:
+
+**Modulation (`src/audio/mod/ModMatrix.ts`):**
+- Extended `VoiceDestination` type with new destinations:
+  - Noise voice: `noiseFilterQ`
+  - Sample voice: `samplePitch`, `sampleStartPoint`, `sampleLpCutoff`, `sampleLpResonance`, `sampleHpCutoff`, `sampleHpResonance`, `sampleSustain`, `sampleRelease`, `grainSpread`, `grainPan`, `sampleScanSpeed`
+  - Ocean voice: `oceanPitch`, `oceanGrainSize`, `oceanDensity`, `oceanPosition`, `oceanSpread`, `oceanHpfFreq`, `oceanLpfFreq`, `oceanVolume`
+  - Complex Morph: `complexCarrierFreq`, `complexNotchFreq`, `complexNotchQ`, `complexOutputLevel`
+  - Plaits: `plaitsFade`, `glideTime`
+
+- Updated `DESTINATION_CATEGORIES` with new categories:
+  - `'Voice - Sample'` - Sample voice destinations
+  - `'Voice - Granular'` - Grain-specific destinations
+  - `'Voice - Ocean'` - Ocean granular voice destinations
+  - `'Voice - Complex Morph'` - Complex morph destinations
+  - `'Voice - Other'` - glideTime
+
+- Updated `VOICE_TYPE_DESTINATIONS` mapping for all voice types:
+  - `noise`: Added `noiseFilterQ`
+  - `sample`: Full list of sample/granular destinations
+  - `ocean`: Full list of ocean voice destinations
+  - `complex-morph`: Added complex-specific destinations
+
+- Added `DESTINATION_RANGES` for all new destinations with proper [min, max, default] values
+
+**Voice Manager (`src/audio/voices/VoiceManager.ts`):**
+- Updated `getDestinationMapping()` function with mappings for:
+  - `noise` voice: noiseFilterQ → filterQ
+  - `complex-morph` voice: complexCarrierFreq, complexNotchFreq, complexNotchQ, complexOutputLevel
+  - `sample` voice: All sample parameters mapped to voice params
+
+**Parameter Locks (`src/audio/engine/ParamLockManager.ts`):**
+- Extended `LockableParamId` type with new lockable parameters:
+  - Sample voice: samplePitch, sampleStartPoint, sampleLpCutoff, sampleLpResonance, sampleHpCutoff, sampleHpResonance, sampleSustain, sampleRelease, sampleScanSpeed, grainDensity, grainLength, grainSpread, grainPan
+  - Ocean voice: oceanPitch, oceanGrainSize, oceanDensity, oceanPosition, oceanSpread, oceanHpfFreq, oceanLpfFreq, oceanVolume
+  - Complex Morph: complexCarrierFreq, complexNotchFreq, complexNotchQ, complexOutputLevel
+  - Other: plaitsFade, glideTime
+
+#### Features:
+1. ✅ All voice types now have complete modulation destination support
+2. ✅ All voice parameters can be modulated via LFO, envelope, or random sources
+3. ✅ All voice parameters can be parameter-locked per step
+4. ✅ Proper destination ranges for smooth modulation
+5. ✅ Voice-type-aware destination filtering in UI
+
+---
+
+### ✅ PRESET SAVE/LOAD SYSTEM - COMPLETE
+
+**Completed:** 2024-12-07
+
+**Goal:** Allow users to save and load complete application state as JSON presets
+
+#### Files Created:
+
+**Preset System (`src/audio/preset/`):**
+- `PresetManager.ts` (NEW):
+  - `PRESET_VERSION = '1.0.0'` - Version for format compatibility
+  - `SerializedPattern` interface - Pattern data with steps
+  - `SerializedTrack` interface - Track with patterns, performance, clock config
+  - `SerializedVoiceConfig` interface - Voice type, preset, params per track
+  - `SerializedChannelParams` interface - Channel params per track
+  - `SlowRandomParams` interface - Slow random modulator settings
+  - `PresetState` interface - Complete app state including:
+    - Metadata: version, name, createdAt, description
+    - Transport: bpm, swing, scale
+    - Tracks: all 12 tracks with patterns and sequences
+    - Voices: voice type, preset, params, note per track
+    - Channels: filter, saturation, sends per track
+    - FX: All 4 Mimeophons, Reverb, Master Bus, return levels, cross-sends
+    - Modulation: 4 LFOs, 6 Envelope Modulators, Slow Random, Mod Routes, global depth, enabled states
+    - Pattern bank: active pattern slot
+  - `generatePresetName()` - Auto-generates name from scale/tempo/timestamp
+  - `validatePreset()` - Type guard for loaded presets
+  - `downloadPreset()` - Triggers browser download of JSON file
+  - `loadPresetFromFile()` - Parses uploaded JSON file
+  - `createDefaultFXCrossSends()` - Default cross-send values
+  - `createDefaultSlowRandomParams()` - Default slow random values
+
+- `index.ts` (NEW) - Barrel exports for preset module
+
+#### Files Modified:
+
+**Engine (`src/audio/engine/GrooveboxEngine.ts`):**
+- Added `exportPreset()` method - Collects all app state into PresetState object:
+  - Gathers track/pattern data from Sequencer
+  - Collects voice configs, channel params from React state (passed as args)
+  - Includes all FX, modulation, and meta settings
+- Added `importPreset()` method - Restores all state from PresetState:
+  - Sets BPM, swing, scale
+  - Restores all track patterns with steps and p-locks
+  - Reassigns voices with params
+  - Updates mixer channels
+  - Restores FX parameters and return levels
+  - Restores modulation routes and envelope modulators
+  - Returns object with Maps for React state updates
+
+**Engine Exports (`src/audio/engine/index.ts`):**
+- Re-exports all preset types and functions
+
+**Transport UI (`src/ui/Transport.tsx`):**
+- Added `TransportProps` interface with `onSavePreset` and `onLoadPreset` callbacks
+- Added hidden file input for loading presets (`<input type="file" accept=".json">`)
+- Added `handleSavePreset()` - Calls callback, downloads result
+- Added `handleLoadPresetClick()` - Triggers file picker
+- Added `handlePresetFileChange()` - Loads file, calls callback, updates local state
+- Added SAVE and LOAD buttons in transport UI
+
+**Transport Styling (`src/ui/Transport.css`):**
+- Added `.transport-preset` container styles
+- Added `.preset-btn` styles (blue theme):
+  - Background: `#1a2a3a` → `#2a3a4a` on hover
+  - Border: `#2a4a5a` → `#66b2ff` on hover
+  - Active: `#66b2ff` background with black text
+
+**App (`src/App.tsx`):**
+- Added `handleSavePreset()` callback - Calls `engine.exportPreset()` with all state
+- Added `handleLoadPreset()` callback - Calls `engine.importPreset()`, updates React state
+- Passes callbacks to Transport component
+
+#### Preset File Format:
+```json
+{
+  "version": "1.0.0",
+  "name": "C_minor_120bpm_2024-12-07-12-34-56",
+  "createdAt": "2024-12-07T12:34:56.789Z",
+  "bpm": 120,
+  "swing": 0.1,
+  "scale": { "root": 0, "scale": "minor", "octave": 3 },
+  "tracks": [...],
+  "voiceConfigs": [...],
+  "channelParams": [...],
+  "mimeophonParams": {...},
+  "mimeophonParams2": {...},
+  "mimeophonParams3": {...},
+  "mimeophonParams4": {...},
+  "reverbParams": {...},
+  "masterParams": {...},
+  "mimeophonReturnLevel": 0.5,
+  ... (all return levels)
+  "fxCrossSends": {...},
+  "lfoParams": [...],
+  "envModParams": [...],
+  "slowRandomParams": {...},
+  "modRoutes": [...],
+  "globalModDepth": 1,
+  "modEnabled": true,
+  "microJitterEnabled": false,
+  "microJitterAmount": 0,
+  "activePatternSlot": 1
+}
+```
+
+#### Features:
+1. ✅ Complete state serialization - every parameter saved
+2. ✅ Auto-generated preset names with root/scale/tempo/timestamp
+3. ✅ JSON format for easy editing and version control
+4. ✅ One-click SAVE button downloads preset
+5. ✅ LOAD button with file picker for importing
+6. ✅ Error handling with user-friendly alerts
+7. ✅ Transport state updates after load (BPM, swing, scale)
+8. ✅ All React state restored from preset
+9. ✅ Works with stopped or running transport
+
+#### How to Use:
+1. Configure your groovebox (patterns, voices, FX, modulation)
+2. Click **SAVE** in the transport bar
+3. Browser downloads JSON file (e.g., `C_minor_120bpm_2024-12-07-12-34-56.json`)
+4. To load: Click **LOAD**, select a preset file
+5. All state restores instantly
+
+#### File Tree Update:
+```
+src/audio/
+├── preset/
+│   ├── PresetManager.ts      ← NEW: Preset state and utilities
+│   └── index.ts              ← NEW: Module exports
+├── engine/
+│   ├── GrooveboxEngine.ts    ← exportPreset/importPreset methods
+│   └── index.ts              ← Re-exports preset types
+└── ...
+
+src/ui/
+├── Transport.tsx             ← SAVE/LOAD buttons and handlers
+├── Transport.css             ← Preset button styling
+└── ...
+```
+
+---
+
+### Current State:
+
+- All Phase 1-5.5 features complete and integrated
+- Dev server running at http://localhost:5173/
+- **NEW: Preset Save/Load System** - Complete app state saved as JSON
+  - SAVE button downloads preset file
+  - LOAD button imports preset and restores all state
+  - Auto-named with scale/tempo/timestamp
+- **NEW: Sample & Ocean Filter/Saturation** - All voice types now have consistent FX controls
+- **NEW: Complete Modulation Destinations** - All voice parameters modulatable
+- **Elektron-style parameter locks (p-locks)** - Per-step parameter overrides
+- **16 Plaits synthesis engines** via @vectorsize/woscillators
+- **Pattern Bank** - 16 patterns with copy/paste
+- **Pattern Sequencer/Arranger** - Sequence patterns for arrangements
+- **WAV Recorder** - Record and download sessions
+- Universal voice types: any track can use any voice (22+ voice types total)
+- Conditional trigs: Elektron-style A:B pattern conditions
+
+---
