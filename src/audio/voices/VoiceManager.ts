@@ -345,14 +345,20 @@ export class VoiceManager {
       case 'ocean': {
         voice = new OceanVoice(this.ctx, destination);
         if (config.params) {
+          console.log('[VoiceManager] Assigning ocean voice with params, sampleUrl exists:', !!(config.params as Partial<OceanVoiceParams>).sampleUrl);
           (voice as OceanVoice).setParams(config.params as Partial<OceanVoiceParams>);
           // Reload sample from URL if present (for pattern copy/paste)
           const oceanParams = config.params as Partial<OceanVoiceParams>;
           if (oceanParams.sampleUrl) {
+            console.log('[VoiceManager] Loading ocean sample from URL, length:', oceanParams.sampleUrl.length);
             (voice as OceanVoice).loadSampleFromUrl(oceanParams.sampleUrl).catch(err => {
               console.error('[VoiceManager] Failed to reload ocean sample from URL:', err);
             });
+          } else {
+            console.log('[VoiceManager] No sampleUrl in ocean params');
           }
+        } else {
+          console.log('[VoiceManager] Assigning ocean voice WITHOUT params');
         }
         break;
       }

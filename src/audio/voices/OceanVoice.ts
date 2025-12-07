@@ -109,14 +109,19 @@ export class OceanVoice {
    * Load sample from File object
    */
   async loadSampleFromFile(file: File): Promise<void> {
-    // Read file as ArrayBuffer for audio decoding
+    console.log('[Ocean] loadSampleFromFile called, file:', file.name, 'type:', file.type, 'size:', file.size);
+    // Read file as ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
+    console.log('[Ocean] Got arrayBuffer, byteLength:', arrayBuffer.byteLength);
+
+    // Convert to data URL FIRST before decodeAudioData potentially detaches the buffer
+    const dataUrl = this.arrayBufferToDataUrl(arrayBuffer, file.type || 'audio/wav');
+    console.log('[Ocean] Created data URL, length:', dataUrl.length, 'starts with:', dataUrl.substring(0, 50));
+    this.params.sampleUrl = dataUrl;
+
+    // Now decode for audio playback (may detach/consume the buffer)
     const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
     this.loadSample(audioBuffer, file.name);
-
-    // Convert ArrayBuffer to data URL for persistence (pattern copy/paste)
-    const dataUrl = this.arrayBufferToDataUrl(arrayBuffer, file.type || 'audio/wav');
-    this.params.sampleUrl = dataUrl;
   }
 
   /**
@@ -407,6 +412,7 @@ export class OceanVoice {
   // === Parameter Methods ===
 
   getParams(): OceanVoiceParams {
+    console.log('[Ocean] getParams called, sampleUrl exists:', !!this.params.sampleUrl, 'length:', this.params.sampleUrl?.length);
     return { ...this.params };
   }
 
