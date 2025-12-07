@@ -145,13 +145,126 @@ export interface SlotPerformanceConfig {
 }
 
 /**
+ * Global FX configuration for a pattern slot
+ * Stores Mimeophon, Reverb, Master bus, and cross-send settings
+ */
+export interface SlotFXConfig {
+  mimeophon1: {
+    zone: number;
+    rate: number;
+    microRate: number;
+    microRateFreq: number;
+    skew: number;
+    repeats: number;
+    color: number;
+    halo: number;
+    mix: number;
+    hold: boolean;
+    flip: boolean;
+    pingPong: boolean;
+    swap: boolean;
+  };
+  mimeophon2: {
+    zone: number;
+    rate: number;
+    microRate: number;
+    microRateFreq: number;
+    skew: number;
+    repeats: number;
+    color: number;
+    halo: number;
+    mix: number;
+    hold: boolean;
+    flip: boolean;
+    pingPong: boolean;
+    swap: boolean;
+  };
+  mimeophon3: {
+    zone: number;
+    rate: number;
+    microRate: number;
+    microRateFreq: number;
+    skew: number;
+    repeats: number;
+    color: number;
+    halo: number;
+    mix: number;
+    hold: boolean;
+    flip: boolean;
+    pingPong: boolean;
+    swap: boolean;
+  };
+  mimeophon4: {
+    zone: number;
+    rate: number;
+    microRate: number;
+    microRateFreq: number;
+    skew: number;
+    repeats: number;
+    color: number;
+    halo: number;
+    mix: number;
+    hold: boolean;
+    flip: boolean;
+    pingPong: boolean;
+    swap: boolean;
+  };
+  reverb: {
+    size: number;
+    decay: number;
+    wetLevel: number;
+    dryLevel: number;
+  };
+  master: {
+    inputGain: number;
+    outputGain: number;
+    saturationAmount: number;
+    saturationDrive: number;
+    highShelf: number;
+    highShelfFreq: number;
+    limiterEnabled: boolean;
+    limiterThreshold: number;
+  };
+  returnLevels: {
+    mimeophon1: number;
+    mimeophon2: number;
+    mimeophon3: number;
+    mimeophon4: number;
+    reverb: number;
+  };
+  crossSends: {
+    mim1ToMim2: number;
+    mim1ToMim3: number;
+    mim1ToMim4: number;
+    mim1ToReverb: number;
+    mim2ToMim1: number;
+    mim2ToMim3: number;
+    mim2ToMim4: number;
+    mim2ToReverb: number;
+    mim3ToMim1: number;
+    mim3ToMim2: number;
+    mim3ToMim4: number;
+    mim3ToReverb: number;
+    mim4ToMim1: number;
+    mim4ToMim2: number;
+    mim4ToMim3: number;
+    mim4ToReverb: number;
+    reverbToMim1: number;
+    reverbToMim2: number;
+    reverbToMim3: number;
+    reverbToMim4: number;
+  };
+}
+
+/**
  * Complete configuration for a pattern slot
- * Each slot stores independent voice, channel, and performance settings per track
+ * Each slot stores independent voice, channel, performance, and FX settings
  */
 export interface PatternSlotConfig {
   trackConfigs: Map<string, SlotVoiceConfig>;
   channelConfigs: Map<string, SlotChannelConfig>;
   trackPerformance: Map<string, SlotPerformanceConfig>;
+  fxConfig?: SlotFXConfig;
 }
 
 export interface Track {
@@ -959,6 +1072,30 @@ export class Sequencer {
   slotHasPerformanceConfigs(slot: number): boolean {
     const slotConfig = this.patternSlotConfigs.get(slot);
     return slotConfig !== undefined && slotConfig.trackPerformance.size > 0;
+  }
+
+  /**
+   * Get FX config for a specific slot
+   */
+  getSlotFXConfig(slot: number): SlotFXConfig | undefined {
+    const slotConfig = this.patternSlotConfigs.get(slot);
+    return slotConfig?.fxConfig;
+  }
+
+  /**
+   * Set FX config for a specific slot
+   */
+  setSlotFXConfig(slot: number, config: SlotFXConfig): void {
+    const slotConfig = this.ensureSlotInitialized(slot);
+    slotConfig.fxConfig = deepClone(config);
+  }
+
+  /**
+   * Check if a slot has FX config stored
+   */
+  slotHasFXConfig(slot: number): boolean {
+    const slotConfig = this.patternSlotConfigs.get(slot);
+    return slotConfig?.fxConfig !== undefined;
   }
 
   /**

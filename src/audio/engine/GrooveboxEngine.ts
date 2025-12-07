@@ -6,7 +6,7 @@
  */
 
 import { MasterClock, type TickEvent } from './MasterClock';
-import { Sequencer, type Track, type StepParams, type TriggerEvent, type Pattern, type TrackPerformance, type TrackClockConfig } from './Sequencer';
+import { Sequencer, type Track, type StepParams, type TriggerEvent, type Pattern, type TrackPerformance, type TrackClockConfig, type SlotFXConfig } from './Sequencer';
 import { VoiceManager, type VoiceType, type TrackVoiceConfig } from '../voices/VoiceManager';
 import { Mixer, type ChannelParams, type MixerState } from '../fx/Mixer';
 import type { MimeophonParams } from '../fx/Mimeophon';
@@ -674,6 +674,9 @@ export class GrooveboxEngine {
         clockConfig: { ...track.clockConfig },
       });
     }
+
+    // Capture FX config
+    this.captureSlotFXConfig(currentSlot);
   }
 
   /**
@@ -737,6 +740,47 @@ export class GrooveboxEngine {
         this.sequencer.setTrackClockConfig(track.id, perfConfig.clockConfig);
       }
     }
+
+    // Apply FX config
+    this.applySlotFXConfig(slot);
+  }
+
+  /**
+   * Apply FX state from a slot
+   */
+  private applySlotFXConfig(slot: number): void {
+    if (!this.sequencer || !this.mixer) return;
+
+    const fxConfig = this.sequencer.getSlotFXConfig(slot);
+    if (!fxConfig) return;
+
+    // Apply Mimeophon 1
+    this.mixer.setMimeophonParams(fxConfig.mimeophon1);
+
+    // Apply Mimeophon 2
+    this.mixer.setMimeophonParams2(fxConfig.mimeophon2);
+
+    // Apply Mimeophon 3
+    this.mixer.setMimeophonParams3(fxConfig.mimeophon3);
+
+    // Apply Mimeophon 4
+    this.mixer.setMimeophonParams4(fxConfig.mimeophon4);
+
+    // Apply Reverb
+    this.mixer.setReverbParams(fxConfig.reverb);
+
+    // Apply Master
+    this.mixer.setMasterParams(fxConfig.master);
+
+    // Apply return levels
+    this.mixer.setMimeophonReturnLevel(fxConfig.returnLevels.mimeophon1);
+    this.mixer.setMimeophonReturnLevel2(fxConfig.returnLevels.mimeophon2);
+    this.mixer.setMimeophonReturnLevel3(fxConfig.returnLevels.mimeophon3);
+    this.mixer.setMimeophonReturnLevel4(fxConfig.returnLevels.mimeophon4);
+    this.mixer.setReverbReturnLevel(fxConfig.returnLevels.reverb);
+
+    // Apply cross-sends
+    this.mixer.setFXCrossSends(fxConfig.crossSends);
   }
 
   /**
@@ -781,6 +825,43 @@ export class GrooveboxEngine {
         clockConfig: { ...track.clockConfig },
       });
     }
+
+    // Capture FX config
+    this.captureSlotFXConfig(slot);
+  }
+
+  /**
+   * Capture current FX state to a slot
+   */
+  private captureSlotFXConfig(slot: number): void {
+    if (!this.sequencer || !this.mixer) return;
+
+    const mim1 = this.mixer.getMimeophon().getParams();
+    const mim2 = this.mixer.getMimeophon2().getParams();
+    const mim3 = this.mixer.getMimeophon3().getParams();
+    const mim4 = this.mixer.getMimeophon4().getParams();
+    const reverb = this.mixer.getReverb().getParams();
+    const master = this.mixer.getMasterBus().getParams();
+    const crossSends = this.mixer.getFXCrossSends();
+
+    const fxConfig: SlotFXConfig = {
+      mimeophon1: { ...mim1 },
+      mimeophon2: { ...mim2 },
+      mimeophon3: { ...mim3 },
+      mimeophon4: { ...mim4 },
+      reverb: { ...reverb },
+      master: { ...master },
+      returnLevels: {
+        mimeophon1: this.mixer.getMimeophonReturnLevel(),
+        mimeophon2: this.mixer.getMimeophonReturnLevel2(),
+        mimeophon3: this.mixer.getMimeophonReturnLevel3(),
+        mimeophon4: this.mixer.getMimeophonReturnLevel4(),
+        reverb: this.mixer.getReverbReturnLevel(),
+      },
+      crossSends: { ...crossSends },
+    };
+
+    this.sequencer.setSlotFXConfig(slot, fxConfig);
   }
 
   /**
