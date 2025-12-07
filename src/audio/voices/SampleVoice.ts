@@ -266,26 +266,26 @@ export class SampleVoice {
    * Load sample from File object (for drag & drop or file input)
    */
   async loadSampleFromFile(file: File): Promise<void> {
-    // Read as ArrayBuffer for audio decoding
+    // Read file as ArrayBuffer for audio decoding
     const arrayBuffer = await file.arrayBuffer();
     const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
     this.loadSample(audioBuffer, file.name);
 
-    // Also read as data URL for persistence (pattern copy/paste)
-    const dataUrl = await this.fileToDataUrl(file);
+    // Convert ArrayBuffer to data URL for persistence (pattern copy/paste)
+    const dataUrl = this.arrayBufferToDataUrl(arrayBuffer, file.type || 'audio/wav');
     this.params.sampleUrl = dataUrl;
   }
 
   /**
-   * Convert a File to a data URL for persistence
+   * Convert an ArrayBuffer to a data URL
    */
-  private fileToDataUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
+  private arrayBufferToDataUrl(buffer: ArrayBuffer, mimeType: string): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return `data:${mimeType};base64,${btoa(binary)}`;
   }
 
   /**
