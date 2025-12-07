@@ -168,7 +168,7 @@ export function TrackControls({ trackId, isMelodic, onOctaveChange }: TrackContr
             <button
               onClick={handleResyncTrack}
               className="resync-btn"
-              title="Sync to global clock"
+              title="Align track to master clock position (respects clock division)"
             >
               SYNC
             </button>

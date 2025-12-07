@@ -166,53 +166,54 @@
   width: 100%;
 }
 
-.fader-input {
-  writing-mode: vertical-lr;
-  direction: rtl;
-  width: 120px;
-  height: 8px;
-  accent-color: #ff9933;
+/* Custom vertical fader component */
+.vertical-fader-track {
+  width: 20px;
+  background: linear-gradient(to top, #222 0%, #333 100%);
+  border-radius: 4px;
+  position: relative;
   cursor: pointer;
-  appearance: slider-vertical;
-  -webkit-appearance: slider-vertical;
+  border: 1px solid #444;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* Webkit vertical slider styling */
-.fader-input::-webkit-slider-runnable-track {
-  width: 8px;
-  background: linear-gradient(to top, #333 0%, #444 100%);
-  border-radius: 4px;
+.vertical-fader-track:hover {
+  border-color: #555;
 }
 
-.fader-input::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 20px;
-  height: 8px;
-  background: #ff9933;
-  border-radius: 2px;
-  cursor: grab;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+.vertical-fader-track.dragging {
+  border-color: #ff9933;
 }
 
-.fader-input::-webkit-slider-thumb:active {
-  cursor: grabbing;
-  background: #ffaa44;
+.vertical-fader-fill {
+  position: absolute;
+  bottom: 0;
+  left: 2px;
+  right: 2px;
+  background: linear-gradient(to top, #ff7722 0%, #ff9933 50%, #ffbb55 100%);
+  border-radius: 0 0 2px 2px;
+  pointer-events: none;
 }
 
-/* Firefox vertical slider styling */
-.fader-input::-moz-range-track {
-  width: 8px;
-  background: linear-gradient(to top, #333 0%, #444 100%);
-  border-radius: 4px;
+.vertical-fader-thumb {
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  height: 20px;
+  background: linear-gradient(to bottom, #ddd 0%, #aaa 50%, #888 100%);
+  border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  border: 1px solid #666;
 }
 
-.fader-input::-moz-range-thumb {
-  width: 20px;
-  height: 8px;
-  background: #ff9933;
-  border: none;
-  border-radius: 2px;
-  cursor: grab;
+.vertical-fader-track:hover .vertical-fader-thumb {
+  background: linear-gradient(to bottom, #eee 0%, #bbb 50%, #999 100%);
+}
+
+.vertical-fader-track.dragging .vertical-fader-thumb {
+  background: linear-gradient(to bottom, #fff 0%, #ddd 50%, #bbb 100%);
+  border-color: #ff9933;
 }
 
 .fader-value {

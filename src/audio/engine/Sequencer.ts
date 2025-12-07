@@ -253,18 +253,70 @@ export class Sequencer {
   }
 
   /**
-   * Resync a single track's phase to the global clock (reset to step 0)
-   * Does NOT reset lastGlobalTick - only resets track-specific state
+   * Resync a single track's phase to align with the master clock.
+   *
+   * When a track has a different clock division, this calculates where the track
+   * WOULD be if it had been running in sync with the master from the beginning,
+   * then sets the track to that position.
+   *
+   * For example, if the master clock is at step 5 and the track is running at 2x speed,
+   * the track would be at step 10 (5 * 2). If running at 1/2 speed, it would be at step 2.
    */
   resyncTrack(trackId: string): void {
-    this.trackStepPositions.set(trackId, 0);
-    this.trackCycleCounts.set(trackId, 1);
-    this.trackTickAccumulators.set(trackId, 0);
+    const track = this.tracks.get(trackId);
+    if (!track) return;
+
+    const pattern = track.patterns.get(track.currentPatternId);
+    if (!pattern) {
+      // No pattern, just reset to 0
+      this.trackStepPositions.set(trackId, 0);
+      this.trackCycleCounts.set(trackId, 1);
+      this.trackTickAccumulators.set(trackId, 0);
+      return;
+    }
+
+    // Calculate the clock multiplier for this track
+    let clockMultiplier = 1;
+    if (!track.clockConfig.useGlobalClock) {
+      clockMultiplier = CLOCK_DIVISION_VALUES[track.clockConfig.division];
+    }
+
+    // Calculate how many ticks per step for the master clock (at 1x)
+    const masterTicksPerStep = this.clock.ppqn / 4; // 16th notes
+
+    // Calculate total ticks since start from the perspective of a 1x clock
+    // This gives us the "master step position"
+    const masterStepFloat = this.lastGlobalTick / masterTicksPerStep;
+
+    // Apply the track's clock multiplier and pattern division
+    // Higher multiplier = more steps have passed
+    // Higher pattern division = fewer steps have passed
+    const trackStepFloat = (masterStepFloat * clockMultiplier) / pattern.division;
+
+    // Get the step position within the pattern
+    const patternLength = pattern.length;
+    const absoluteStep = Math.floor(trackStepFloat);
+    const stepInPattern = absoluteStep % patternLength;
+
+    // Calculate cycle count (how many times the pattern has repeated)
+    const cycleCount = Math.floor(absoluteStep / patternLength) + 1;
+
+    // Calculate the fractional accumulator (how far we are into the next step)
+    const fractionalStep = trackStepFloat - absoluteStep;
+    const trackTicksPerStep = (masterTicksPerStep * pattern.division) / clockMultiplier;
+    const accumulator = fractionalStep * trackTicksPerStep;
+
+    this.trackStepPositions.set(trackId, stepInPattern);
+    this.trackCycleCounts.set(trackId, cycleCount);
+    this.trackTickAccumulators.set(trackId, accumulator);
   }
 
   /**
-   * Resync all tracks to the global clock (hard reset to downbeat)
-   * Resets all track positions but maintains clock continuity to avoid glitches
+   * Hard reset all tracks to step 0 (restart from the beginning).
+   *
+   * This resets both track positions AND the lastGlobalTick reference,
+   * effectively restarting the entire sequencer from the downbeat.
+   * All tracks will be in sync at step 0.
    */
   resyncAllTracks(): void {
     for (const trackId of this.tracks.keys()) {
@@ -272,11 +324,27 @@ export class Sequencer {
       this.trackCycleCounts.set(trackId, 1);
       this.trackTickAccumulators.set(trackId, 0);
     }
-    // Note: We do NOT reset lastGlobalTick here - that would cause a huge
-    // tickDelta on the next tick and trigger many steps at once (glitchy sound)
+    // Reset lastGlobalTick to effectively restart from 0
+    // The next tick will have a small delta based on the new tick value
+    // We set it to the current tick count so there's no accumulated time
+    // This is safe because we've reset all accumulators
+    this.lastGlobalTick = 0;
+    this.pendingResetToCurrentTick = true;
   }
 
+  // Flag to handle resetting lastGlobalTick to current tick on next handleTick
+  private pendingResetToCurrentTick: boolean = false;
+
   private handleTick(event: TickEvent): void {
+    // Handle pending reset - sync lastGlobalTick to current tick to avoid large delta
+    if (this.pendingResetToCurrentTick) {
+      this.lastGlobalTick = event.tick;
+      this.pendingResetToCurrentTick = false;
+      // Return early - we've just reset, don't process this tick
+      // The next tick will have a normal small delta
+      return;
+    }
+
     const ticksPerStep = this.clock.ppqn / 4; // 16th note steps (4 per quarter note)
     const tickDelta = event.tick - this.lastGlobalTick;
     this.lastGlobalTick = event.tick;

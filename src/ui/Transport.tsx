@@ -202,7 +202,7 @@ export function Transport({ onSavePreset, onLoadPreset, mixerOpen, onMixerToggle
         <button
           className="transport-btn resync-all-btn"
           onClick={handleResyncAll}
-          title="Reset all tracks to downbeat"
+          title="Restart all tracks from step 1 (hard reset)"
         >
           RESET
         </button>

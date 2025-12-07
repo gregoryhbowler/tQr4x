@@ -11,10 +11,76 @@
  * Volume, pan, and sends are per-pattern (stored in slot configs)
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { engine } from '../audio/engine';
 import type { ChannelParams } from '../audio/fx/Mixer';
 import './MixerView.css';
+
+/**
+ * VerticalFader - A proper vertical fader with drag support
+ */
+interface VerticalFaderProps {
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+  height?: number;
+}
+
+function VerticalFader({ value, min, max, onChange, height = 100 }: VerticalFaderProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Calculate thumb position (0 at bottom, height at top)
+  const range = max - min;
+  const normalizedValue = (value - min) / range;
+  const thumbPosition = normalizedValue * height;
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+
+    const updateValue = (clientY: number) => {
+      if (!trackRef.current) return;
+      const rect = trackRef.current.getBoundingClientRect();
+      // Invert Y because we want bottom = min, top = max
+      const relativeY = rect.bottom - clientY;
+      const clampedY = Math.max(0, Math.min(height, relativeY));
+      const newValue = min + (clampedY / height) * range;
+      onChange(Math.round(newValue * 100) / 100); // Round to 2 decimal places
+    };
+
+    updateValue(e.clientY);
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      updateValue(moveEvent.clientY);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [min, max, range, height, onChange]);
+
+  return (
+    <div
+      ref={trackRef}
+      className={`vertical-fader-track ${isDragging ? 'dragging' : ''}`}
+      style={{ height: `${height}px` }}
+      onMouseDown={handleMouseDown}
+    >
+      <div className="vertical-fader-fill" style={{ height: `${thumbPosition}px` }} />
+      <div
+        className="vertical-fader-thumb"
+        style={{ bottom: `${thumbPosition - 10}px` }}
+      />
+    </div>
+  );
+}
 
 interface TrackInfo {
   id: string;
@@ -62,6 +128,19 @@ export function MixerView({ tracks, refreshKey }: MixerViewProps) {
           muted: trackData.muted,
           solo: trackData.solo,
         });
+      } else {
+        // Fallback to defaults if engine isn't ready yet
+        states.set(track.id, {
+          volume: 0.8,
+          pan: 0,
+          delaySend: 0,
+          delaySend2: 0,
+          delaySend3: 0,
+          delaySend4: 0,
+          reverbSend: 0,
+          muted: false,
+          solo: false,
+        });
       }
     }
 
@@ -72,6 +151,14 @@ export function MixerView({ tracks, refreshKey }: MixerViewProps) {
   useEffect(() => {
     loadChannelStates();
   }, [loadChannelStates, refreshKey]);
+
+  // Reload when engine state changes (e.g., when it becomes ready)
+  useEffect(() => {
+    const unsubscribe = engine.onStateChange(() => {
+      loadChannelStates();
+    });
+    return unsubscribe;
+  }, [loadChannelStates]);
 
   // Update volume
   const handleVolumeChange = useCallback((trackId: string, volume: number) => {
@@ -277,14 +364,12 @@ export function MixerView({ tracks, refreshKey }: MixerViewProps) {
 
               {/* Volume fader */}
               <div className="channel-fader">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
+                <VerticalFader
                   value={state.volume}
-                  onChange={(e) => handleVolumeChange(track.id, parseFloat(e.target.value))}
-                  className="fader-input"
+                  min={0}
+                  max={1}
+                  onChange={(v) => handleVolumeChange(track.id, v)}
+                  height={100}
                 />
                 <span className="fader-value">{formatDb(state.volume)}</span>
               </div>
