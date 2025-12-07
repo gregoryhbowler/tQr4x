@@ -1225,6 +1225,8 @@ export class GrooveboxEngine {
     this.mixer?.updateChannel(trackId, params);
     // Save to current slot
     this.saveChannelConfigToCurrentSlot(trackId);
+    // Update base state so p-lock restoration uses the new values
+    this.voiceManager?.captureBaseChannelState(trackId);
   }
 
   /**
