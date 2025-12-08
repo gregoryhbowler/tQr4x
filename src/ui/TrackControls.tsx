@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { engine, type TrackPerformance, type TrackClockConfig, type ClockDivisionRatio, CLOCK_DIVISION_VALUES } from '../audio/engine';
+import { CHORD_NAMES, getChordCategories, type ChordType } from '../audio/music/Scale';
 import './TrackControls.css';
 
 const CLOCK_DIVISION_OPTIONS: { value: ClockDivisionRatio; label: string }[] = [
@@ -25,6 +26,8 @@ export function TrackControls({ trackId, isMelodic, onOctaveChange }: TrackContr
   const [performance, setPerformance] = useState<TrackPerformance>({ drift: 0, fill: 0 });
   const [clockConfig, setClockConfig] = useState<TrackClockConfig>({ useGlobalClock: true, division: '1/1' });
   const [trackOctave, setTrackOctave] = useState<number | undefined>(undefined);
+  const [chordMode, setChordMode] = useState(false);
+  const [chordType, setChordType] = useState<string>('triad');
 
   // Load current values
   useEffect(() => {
@@ -34,6 +37,9 @@ export function TrackControls({ trackId, isMelodic, onOctaveChange }: TrackContr
     if (clock) setClockConfig(clock);
     const octave = engine.getTrackOctave(trackId);
     setTrackOctave(octave);
+    // Load chord mode settings
+    setChordMode(engine.getTrackChordMode(trackId));
+    setChordType(engine.getTrackChordType(trackId) ?? 'triad');
   }, [trackId]);
 
   const handleDriftChange = useCallback((drift: number) => {
@@ -65,6 +71,16 @@ export function TrackControls({ trackId, isMelodic, onOctaveChange }: TrackContr
     engine.setTrackOctave(trackId, octave);
     onOctaveChange?.(octave);
   }, [trackId, onOctaveChange]);
+
+  const handleChordModeChange = useCallback((enabled: boolean) => {
+    setChordMode(enabled);
+    engine.setTrackChordMode(trackId, enabled);
+  }, [trackId]);
+
+  const handleChordTypeChange = useCallback((type: string) => {
+    setChordType(type);
+    engine.setTrackChordType(trackId, type);
+  }, [trackId]);
 
   // Format fill value for display (-100% to +100%)
   const fillDisplay = performance.fill === 0
@@ -135,6 +151,46 @@ export function TrackControls({ trackId, isMelodic, onOctaveChange }: TrackContr
               </label>
               <div className="control-hint">
                 Note variation (0% = exact, 100% = random from scale)
+              </div>
+            </div>
+          </div>
+          <div className="control-group chord-mode-group">
+            <div className="control-item">
+              <div className="chord-header">
+                <span className="control-label">CHORD MODE</span>
+                <label className="chord-mode-toggle">
+                  <input
+                    type="checkbox"
+                    checked={chordMode}
+                    onChange={(e) => handleChordModeChange(e.target.checked)}
+                  />
+                  <span>{chordMode ? 'ON' : 'OFF'}</span>
+                </label>
+              </div>
+              {chordMode && (
+                <div className="chord-type-select">
+                  <select
+                    value={chordType}
+                    onChange={(e) => handleChordTypeChange(e.target.value)}
+                    className="chord-select"
+                  >
+                    {Object.entries(getChordCategories()).map(([category, types]) => (
+                      <optgroup key={category} label={category}>
+                        {types.map((type) => (
+                          <option key={type} value={type}>
+                            {CHORD_NAMES[type as ChordType]}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="control-hint">
+                {chordMode
+                  ? `Notes trigger as ${CHORD_NAMES[chordType as ChordType] || chordType} chords`
+                  : 'Single notes (toggle to enable chord mode)'
+                }
               </div>
             </div>
           </div>

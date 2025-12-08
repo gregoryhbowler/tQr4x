@@ -202,3 +202,71 @@
   border-color: #ff3366;
   color: #fff;
 }
+
+/* Chord Mode Controls */
+.chord-mode-group {
+  border-left: 1px solid #333;
+  padding-left: 16px;
+}
+
+.chord-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.chord-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #888;
+  cursor: pointer;
+}
+
+.chord-mode-toggle input[type="checkbox"] {
+  accent-color: #66ff99;
+  cursor: pointer;
+}
+
+.chord-mode-toggle span {
+  min-width: 24px;
+}
+
+.chord-type-select {
+  margin-bottom: 4px;
+}
+
+.chord-select {
+  padding: 4px 8px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.chord-select:hover {
+  border-color: #66ff99;
+}
+
+.chord-select:focus {
+  outline: none;
+  border-color: #66ff99;
+}
+
+.chord-select optgroup {
+  background: #1a1a1a;
+  color: #66ff99;
+  font-weight: bold;
+  padding: 4px;
+}
+
+.chord-select option {
+  background: #222;
+  color: #fff;
+  padding: 4px;
+}

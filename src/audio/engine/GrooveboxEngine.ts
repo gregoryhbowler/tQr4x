@@ -755,6 +755,11 @@ export class GrooveboxEngine {
         if (perfConfig.performance.octaveRange !== undefined) {
           this.sequencer.setTrackOctave(track.id, perfConfig.performance.octaveRange);
         }
+        // Apply chord mode settings
+        this.sequencer.setTrackChordMode(track.id, perfConfig.performance.chordMode ?? false);
+        if (perfConfig.performance.chordType !== undefined) {
+          this.sequencer.setTrackChordType(track.id, perfConfig.performance.chordType);
+        }
         this.sequencer.setTrackClockConfig(track.id, perfConfig.clockConfig);
       }
     }
@@ -1252,6 +1257,24 @@ export class GrooveboxEngine {
 
   getTrackOctave(trackId: string): number | undefined {
     return this.sequencer?.getTrackOctave(trackId);
+  }
+
+  // Chord mode controls
+
+  setTrackChordMode(trackId: string, enabled: boolean): void {
+    this.sequencer?.setTrackChordMode(trackId, enabled);
+  }
+
+  getTrackChordMode(trackId: string): boolean {
+    return this.sequencer?.getTrackChordMode(trackId) ?? false;
+  }
+
+  setTrackChordType(trackId: string, chordType: string): void {
+    this.sequencer?.setTrackChordType(trackId, chordType);
+  }
+
+  getTrackChordType(trackId: string): string | undefined {
+    return this.sequencer?.getTrackChordType(trackId);
   }
 
   // Legacy per-track scale setter - now sets global scale

@@ -6,7 +6,7 @@
  */
 
 import { type TickEvent, MasterClock } from './MasterClock';
-import { applyNoteDrift, applyFillControl, type ScaleConfig } from '../music/Scale';
+import { applyNoteDrift, applyFillControl, generateChord, type ScaleConfig, type ChordType } from '../music/Scale';
 import { paramLockManager } from './ParamLockManager';
 
 // Deep clone helper for ensuring pattern copies are fully independent
@@ -50,7 +50,8 @@ export interface StepParams {
   microTime: number;      // -0.5 to +0.5 (fraction of step)
   probability: number;    // 0-1
   ratchets: number;       // 0 = none, 1-4 = subdivisions
-  note?: number;          // MIDI note (for melodic tracks)
+  note?: number;          // MIDI note (for melodic tracks) - root note when in chord mode
+  chordType?: string;     // Per-step chord type override (when track has chordMode enabled)
   paramLocks?: Record<string, number>; // Per-step parameter overrides (Elektron-style p-locks)
   hasParamLocks?: boolean; // True if this step has any parameter locks
   condition?: ConditionalTrig;  // Elektron-style conditional trig (A:B)
@@ -109,6 +110,8 @@ export interface TrackPerformance {
   drift: number;          // 0-1: note variation (0 = exact, 1 = fully random from scale)
   fill: number;           // -1 to 1: trigger density (-1 = none, 0 = as sequenced, 1 = all)
   octaveRange?: number;   // Base octave for melodic tracks (default: uses global scale octave)
+  chordMode?: boolean;    // When true, notes trigger as chords instead of single notes
+  chordType?: string;     // Default chord type for this track (can be overridden per-step)
 }
 
 /**
@@ -304,7 +307,9 @@ export interface TriggerEvent {
   step: number;
   isRatchet: boolean;
   ratchetIndex: number;
-  note?: number;          // Resolved note (after drift applied)
+  note?: number;          // Resolved note (after drift applied) - root note for chords
+  notes?: number[];       // Chord notes (when chordMode is enabled) - includes root + chord tones
+  chordType?: string;     // Chord type used (for UI display)
   paramLocks?: Record<string, number>;  // Step's p-locks (if any)
   latchedParams?: Record<string, number>; // Latched params from p-lock system (persists between trigs)
 }
@@ -578,6 +583,15 @@ export class Sequencer {
       resolvedNote = applyNoteDrift(resolvedNote, track.performance.drift, this.globalScale);
     }
 
+    // Generate chord notes if chord mode is enabled
+    let chordNotes: number[] | undefined;
+    let usedChordType: string | undefined;
+    if (track.performance.chordMode && resolvedNote !== undefined && this.globalScale) {
+      // Use per-step chord type if set, otherwise track default
+      usedChordType = step.chordType || track.performance.chordType || 'triad';
+      chordNotes = generateChord(resolvedNote, usedChordType as ChordType, this.globalScale);
+    }
+
     // Elektron-style parameter lock latching:
     // When a trig fires, update latched params based on this step's p-locks
     // These latched params persist until the next trig on this track
@@ -610,6 +624,8 @@ export class Sequencer {
         isRatchet: i > 0,
         ratchetIndex: i,
         note: resolvedNote,
+        notes: chordNotes,
+        chordType: usedChordType,
         paramLocks: step.paramLocks,
         latchedParams, // Include latched params for voice to use
       };
@@ -681,6 +697,32 @@ export class Sequencer {
   getTrackOctave(trackId: string): number | undefined {
     const track = this.tracks.get(trackId);
     return track?.performance.octaveRange;
+  }
+
+  // Chord mode controls
+
+  setTrackChordMode(trackId: string, enabled: boolean): void {
+    const track = this.tracks.get(trackId);
+    if (track) {
+      track.performance.chordMode = enabled;
+    }
+  }
+
+  getTrackChordMode(trackId: string): boolean {
+    const track = this.tracks.get(trackId);
+    return track?.performance.chordMode ?? false;
+  }
+
+  setTrackChordType(trackId: string, chordType: string): void {
+    const track = this.tracks.get(trackId);
+    if (track) {
+      track.performance.chordType = chordType;
+    }
+  }
+
+  getTrackChordType(trackId: string): string | undefined {
+    const track = this.tracks.get(trackId);
+    return track?.performance.chordType;
   }
 
   // Legacy per-track scale setter - now sets global scale

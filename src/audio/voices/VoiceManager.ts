@@ -449,11 +449,20 @@ export class VoiceManager {
 
       case 'fm-melodic': {
         const melodicVoice = voice as FMMelodicVoice;
-        // Use per-step note if available, otherwise fall back to track default
-        const note = event.note ?? config.note ?? 60;
-        // For sequencer use, we trigger with a fixed duration based on step
         const duration = 0.2;  // TODO: Get from step or pattern
-        melodicVoice.trigger(note, event.velocity, event.time, duration, mergedParamLocks as Partial<FMMelodicParams>);
+
+        // Check for chord notes (multiple simultaneous notes)
+        if (event.notes && event.notes.length > 0) {
+          // Trigger all chord notes with slight timing spread for more natural feel
+          for (let i = 0; i < event.notes.length; i++) {
+            const noteTime = event.time + (i * 0.002); // 2ms stagger
+            melodicVoice.trigger(event.notes[i], event.velocity, noteTime, duration, mergedParamLocks as Partial<FMMelodicParams>);
+          }
+        } else {
+          // Single note mode
+          const note = event.note ?? config.note ?? 60;
+          melodicVoice.trigger(note, event.velocity, event.time, duration, mergedParamLocks as Partial<FMMelodicParams>);
+        }
         break;
       }
 
@@ -483,18 +492,36 @@ export class VoiceManager {
       case 'plaits-chords':
       case 'plaits-speech': {
         const plaitsMelodicVoice = voice as PlaitsMelodicVoice;
-        // Use per-step note if available, otherwise fall back to track default
-        const note = event.note ?? config.note ?? 60;
         const duration = 0.2;  // TODO: Get from step or pattern
-        plaitsMelodicVoice.triggerNote(note, event.velocity, event.time, duration, mergedParamLocks as Partial<PlaitsMelodicParams>);
+
+        // Check for chord notes (multiple simultaneous notes)
+        if (event.notes && event.notes.length > 0) {
+          // Trigger all chord notes with slight timing spread
+          for (let i = 0; i < event.notes.length; i++) {
+            const noteTime = event.time + (i * 0.002); // 2ms stagger
+            plaitsMelodicVoice.triggerNote(event.notes[i], event.velocity, noteTime, duration, mergedParamLocks as Partial<PlaitsMelodicParams>);
+          }
+        } else {
+          // Single note mode
+          const note = event.note ?? config.note ?? 60;
+          plaitsMelodicVoice.triggerNote(note, event.velocity, event.time, duration, mergedParamLocks as Partial<PlaitsMelodicParams>);
+        }
         break;
       }
 
       // Plaits pitched percussion engines (string, modal) - support note sequencing
       case 'plaits-string':
       case 'plaits-modal': {
-        const note = event.note ?? config.note ?? 48;
-        (voice as PlaitsPercVoice).trigger(event.time, event.velocity, { ...mergedParamLocks as Partial<PlaitsParams>, note });
+        // Check for chord notes (multiple simultaneous notes)
+        if (event.notes && event.notes.length > 0) {
+          for (let i = 0; i < event.notes.length; i++) {
+            const noteTime = event.time + (i * 0.002); // 2ms stagger
+            (voice as PlaitsPercVoice).trigger(noteTime, event.velocity, { ...mergedParamLocks as Partial<PlaitsParams>, note: event.notes[i] });
+          }
+        } else {
+          const note = event.note ?? config.note ?? 48;
+          (voice as PlaitsPercVoice).trigger(event.time, event.velocity, { ...mergedParamLocks as Partial<PlaitsParams>, note });
+        }
         break;
       }
 

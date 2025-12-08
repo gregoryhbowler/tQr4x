@@ -36,6 +36,163 @@ export const SCALE_INTERVALS: Record<string, number[]> = {
 
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
+// ============================================
+// Chord System
+// ============================================
+
+/**
+ * Chord types defined as scale degree intervals (0-indexed)
+ * These are intervals in scale degrees, not semitones
+ * e.g., [0, 2, 4] = root, 3rd, 5th in the current scale
+ */
+export const CHORD_DEGREES: Record<string, number[]> = {
+  // Triads (3-note)
+  triad: [0, 2, 4],                    // Root, 3rd, 5th
+  triadInv1: [2, 4, 7],                // 1st inversion (3rd in bass)
+  triadInv2: [4, 7, 9],                // 2nd inversion (5th in bass)
+
+  // Seventh chords (4-note)
+  seventh: [0, 2, 4, 6],               // Root, 3rd, 5th, 7th
+  seventhInv1: [2, 4, 6, 7],           // 1st inversion
+  seventhInv2: [4, 6, 7, 9],           // 2nd inversion
+  seventhInv3: [6, 7, 9, 11],          // 3rd inversion
+
+  // Extended chords
+  ninth: [0, 2, 4, 6, 8],              // Add 9th
+  add9: [0, 2, 4, 8],                  // Triad + 9th (no 7th)
+  sus2: [0, 1, 4],                     // Suspended 2nd
+  sus4: [0, 3, 4],                     // Suspended 4th
+
+  // Power/open voicings
+  power: [0, 4],                       // Root + 5th only
+  powerOctave: [0, 4, 7],              // Root + 5th + octave
+  octaves: [0, 7],                     // Root + octave
+  octaves2: [0, 7, 14],                // Root + 2 octaves
+
+  // Stacked voicings (wider spread)
+  openTriad: [0, 4, 9],                // Root, 5th, 10th (3rd up an octave)
+  openSeventh: [0, 4, 6, 9],           // Open seventh voicing
+  quartal: [0, 3, 6],                  // Stacked 4ths (in scale degrees)
+  quintal: [0, 4, 8],                  // Stacked 5ths
+
+  // Clusters
+  cluster3: [0, 1, 2],                 // 3 adjacent scale notes
+  cluster4: [0, 1, 2, 3],              // 4 adjacent scale notes
+};
+
+export type ChordType = keyof typeof CHORD_DEGREES;
+
+export const CHORD_NAMES: Record<ChordType, string> = {
+  triad: 'Triad',
+  triadInv1: 'Triad 1st Inv',
+  triadInv2: 'Triad 2nd Inv',
+  seventh: '7th',
+  seventhInv1: '7th 1st Inv',
+  seventhInv2: '7th 2nd Inv',
+  seventhInv3: '7th 3rd Inv',
+  ninth: '9th',
+  add9: 'Add9',
+  sus2: 'Sus2',
+  sus4: 'Sus4',
+  power: 'Power',
+  powerOctave: 'Power+Oct',
+  octaves: 'Octaves',
+  octaves2: '2 Octaves',
+  openTriad: 'Open Triad',
+  openSeventh: 'Open 7th',
+  quartal: 'Quartal',
+  quintal: 'Quintal',
+  cluster3: 'Cluster 3',
+  cluster4: 'Cluster 4',
+};
+
+/**
+ * Get available chord types grouped by category
+ */
+export function getChordCategories(): Record<string, ChordType[]> {
+  return {
+    'Triads': ['triad', 'triadInv1', 'triadInv2'],
+    'Sevenths': ['seventh', 'seventhInv1', 'seventhInv2', 'seventhInv3'],
+    'Extended': ['ninth', 'add9', 'sus2', 'sus4'],
+    'Power/Open': ['power', 'powerOctave', 'octaves', 'octaves2'],
+    'Voicings': ['openTriad', 'openSeventh', 'quartal', 'quintal'],
+    'Clusters': ['cluster3', 'cluster4'],
+  };
+}
+
+/**
+ * Generate chord notes from a root note using scale degrees
+ *
+ * @param rootNote - MIDI note number of the root
+ * @param chordType - Type of chord to generate
+ * @param config - Scale configuration for determining intervals
+ * @returns Array of MIDI note numbers forming the chord
+ */
+export function generateChord(
+  rootNote: number,
+  chordType: ChordType,
+  config: ScaleConfig
+): number[] {
+  const degrees = CHORD_DEGREES[chordType];
+  if (!degrees) return [rootNote];
+
+  const scaleIntervals = SCALE_INTERVALS[config.scale];
+  if (!scaleIntervals) return [rootNote];
+
+  const notes: number[] = [];
+
+  for (const degree of degrees) {
+    // Calculate which octave offset and scale degree
+    const octaveOffset = Math.floor(degree / scaleIntervals.length);
+    const scaleDegree = degree % scaleIntervals.length;
+
+    // Get semitone interval for this scale degree
+    const semitones = scaleIntervals[scaleDegree] + (octaveOffset * 12);
+
+    const note = rootNote + semitones;
+    if (note >= 0 && note <= 127) {
+      notes.push(note);
+    }
+  }
+
+  return notes;
+}
+
+/**
+ * Get the root note index in the note pool for a given chord
+ * Used for the chord slider - maps slider position to root notes
+ */
+export function generateChordRootPool(
+  config: ScaleConfig,
+  octaveRange: number = 2
+): number[] {
+  // Generate the standard note pool - each note can be a chord root
+  return generateNotePool(config, octaveRange);
+}
+
+/**
+ * Get a descriptive name for a chord based on root note and type
+ */
+export function getChordName(
+  rootNote: number,
+  chordType: ChordType,
+  config: ScaleConfig
+): string {
+  const noteName = NOTE_NAMES[rootNote % 12];
+  const chordLabel = CHORD_NAMES[chordType] || chordType;
+
+  // Determine chord quality based on scale intervals
+  const scaleIntervals = SCALE_INTERVALS[config.scale];
+  const rootInScale = (rootNote - config.root) % 12;
+
+  // Find which scale degree this root is
+  const degreeIndex = scaleIntervals.indexOf(rootInScale);
+  const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+  const degree = degreeIndex >= 0 ? romanNumerals[degreeIndex] : '';
+
+  return `${noteName} ${chordLabel}${degree ? ` (${degree})` : ''}`;
+}
+
 export type ScaleName = keyof typeof SCALE_INTERVALS;
 
 export interface ScaleConfig {
@@ -252,6 +409,8 @@ export function noteNameToMidi(name: string): number {
 export const Scale = {
   INTERVALS: SCALE_INTERVALS,
   NOTE_NAMES,
+  CHORD_DEGREES,
+  CHORD_NAMES,
   generateNotePool,
   quantizeToScale,
   getScaleNeighbors,
@@ -259,4 +418,8 @@ export const Scale = {
   applyFillControl,
   midiToNoteName,
   noteNameToMidi,
+  generateChord,
+  generateChordRootPool,
+  getChordName,
+  getChordCategories,
 };
