@@ -59,3 +59,31 @@ Parameter locks allow per-step automation. When updating channel params:
 - The base channel state is captured for p-lock restoration
 
 This ensures changes persist across sequencer steps.
+
+## Chord Mode
+
+Melodic voices can trigger chords instead of single notes:
+- Toggle in TrackControls for melodic tracks (after DRIFT control)
+- 21 chord types in 6 categories (triads, sevenths, extended, power, voicings, clusters)
+- Chords are scale-aware (built from scale degrees, always fit current scale)
+- Per-slot storage (settings saved per pattern slot)
+- Per-step chord type override via `step.chordType`
+
+Key files:
+- `src/audio/music/Scale.ts` - `CHORD_DEGREES`, `generateChord()`
+- `src/audio/engine/Sequencer.ts` - `TrackPerformance.chordMode/chordType`, `TriggerEvent.notes`
+- `src/audio/voices/VoiceManager.ts` - Multi-note triggering logic
+- `src/ui/TrackControls.tsx` - Chord mode UI
+
+## Pattern Slot System
+
+Each pattern slot (1-16) stores independent configurations:
+- Voice configs (voice type, params including sample URLs)
+- Channel configs (filter, saturation, sends, volume, pan)
+- Performance configs (drift, fill, octave, chord mode/type, clock division)
+- FX configs (4x Mimeophon, reverb, master bus, cross-sends)
+
+When switching patterns or using the arranger:
+- Current slot state is captured before switching
+- New slot state is applied (voice reassignment, sample reloading, etc.)
+- UI callbacks refresh to reflect new state
