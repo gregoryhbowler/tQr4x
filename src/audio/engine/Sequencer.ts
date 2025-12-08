@@ -366,6 +366,9 @@ export class Sequencer {
       this.trackTickAccumulators.set(trackId, 0);
     }
     this.lastGlobalTick = 0;
+    // Reset arranger cycle tracking to match the initial track1 cycle count
+    this.lastTrack1CycleCount = 1;
+    this.patternSequencerCycleCount = 0;
 
     // Subscribe to clock ticks
     this.unsubscribeClock = this.clock.onTick((event) => {
