@@ -2786,3 +2786,86 @@ src/ui/
 - Conditional trigs: Elektron-style A:B pattern conditions
 
 ---
+
+### ✅ PHASE 5.6: BUG FIXES & CHORD MODE - COMPLETE
+
+**Completed:** 2024-12-07
+
+#### Bug Fixes Applied:
+
+1. **Arranger FX Settings** - Fixed arranger not respecting per-pattern FX settings
+   - Added `onFXParamsRefresh` callback to PatternBank
+   - UI now refreshes FX state when arranger changes patterns
+
+2. **Preset Loading** - Fixed JSON preset not restoring patterns/arranger correctly
+   - Added `activePatternSlot` restoration during import
+   - Added per-slot configs serialization (`slotConfigs` in PresetState)
+
+3. **Ocean Voice Sample Persistence** - Fixed sample not preserved during pattern copy/paste
+   - Convert ArrayBuffer to data URL BEFORE `decodeAudioData()` (which detaches buffer)
+   - VoiceManager reloads sample from URL when restoring voice config
+
+4. **Arranger Per-Pattern Voice Settings** - Fixed arranger not applying per-pattern voice configs
+   - Added pattern slot change listener in GrooveboxEngine
+   - Uses `isManualPatternSwitch` flag to prevent double state application
+
+5. **Arranger Not Advancing** - Fixed arranger not progressing between patterns
+   - Reset `lastTrack1CycleCount` and `patternSequencerCycleCount` in `Sequencer.start()`
+
+#### New Feature: Chord Mode
+
+Toggle-able chord mode for melodic voices (FM-Melodic, Plaits melodic, pitched percussion):
+
+**21 Chord Types in 6 Categories:**
+- **Triads:** Root position, 1st/2nd inversions
+- **Sevenths:** 7th chord with 3 inversions
+- **Extended:** 9th, Add9, Sus2, Sus4
+- **Power/Open:** Power chords, octave stacks
+- **Voicings:** Open triads/sevenths, Quartal, Quintal
+- **Clusters:** 3-4 adjacent scale notes
+
+**Implementation:**
+- `src/audio/music/Scale.ts` - `CHORD_DEGREES`, `generateChord()`, `getChordCategories()`
+- `src/audio/engine/Sequencer.ts` - `TrackPerformance.chordMode/chordType`, `TriggerEvent.notes`
+- `src/audio/voices/VoiceManager.ts` - Multi-note triggering with 2ms stagger
+- `src/ui/TrackControls.tsx` - Chord mode toggle and grouped type selector
+
+**Features:**
+1. ✅ Scale-aware chords - built from scale degrees, always fit current scale
+2. ✅ Per-slot storage - chord settings saved per pattern slot
+3. ✅ Per-step chord type override via `step.chordType`
+4. ✅ 2ms timing stagger between notes for natural feel
+5. ✅ Works with all melodic voices (FM-Melodic, 8 Plaits melodic, 2 pitched percussion)
+
+#### How to Use Chord Mode:
+1. Select a melodic track (FM-Melodic, Plaits-VA, etc.)
+2. In TrackControls, find **CHORD MODE** section (after DRIFT)
+3. Toggle checkbox to enable
+4. Select chord type from grouped dropdown
+5. Note slider now sets the root note of the chord
+
+#### Files Modified:
+- `src/audio/music/Scale.ts` - Chord system definitions
+- `src/audio/engine/Sequencer.ts` - StepParams.chordType, TrackPerformance.chordMode, TriggerEvent.notes
+- `src/audio/engine/GrooveboxEngine.ts` - Chord mode API methods
+- `src/audio/voices/VoiceManager.ts` - Multi-note triggering
+- `src/ui/TrackControls.tsx` - Chord mode UI
+- `src/ui/TrackControls.css` - Chord mode styling
+
+---
+
+### Current State:
+
+- All Phase 1-5.6 features complete and integrated
+- **NEW: Chord Mode** - Melodic voices can trigger chords
+  - 21 chord types organized in 6 categories
+  - Scale-aware (built from scale degrees)
+  - Per-slot and per-step chord type settings
+- **FIXED: Pattern System** - Arranger and pattern switching now correctly:
+  - Apply per-pattern FX settings
+  - Preserve Ocean voice samples
+  - Apply voice/channel configs
+  - Advance between patterns properly
+- **Preset System** - Now includes pattern slot configs in save/load
+
+---
