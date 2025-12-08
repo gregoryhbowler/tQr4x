@@ -109,14 +109,11 @@ export class OceanVoice {
    * Load sample from File object
    */
   async loadSampleFromFile(file: File): Promise<void> {
-    console.log('[Ocean] loadSampleFromFile called, file:', file.name, 'type:', file.type, 'size:', file.size);
     // Read file as ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
-    console.log('[Ocean] Got arrayBuffer, byteLength:', arrayBuffer.byteLength);
 
     // Convert to data URL FIRST before decodeAudioData potentially detaches the buffer
     const dataUrl = this.arrayBufferToDataUrl(arrayBuffer, file.type || 'audio/wav');
-    console.log('[Ocean] Created data URL, length:', dataUrl.length, 'starts with:', dataUrl.substring(0, 50));
     this.params.sampleUrl = dataUrl;
 
     // Now decode for audio playback (may detach/consume the buffer)
@@ -165,26 +162,13 @@ export class OceanVoice {
    * Trigger the ocean voice - schedules grains for one step
    */
   trigger(time: number, velocity: number = 1, paramLocks?: Partial<OceanVoiceParams>): void {
-    console.log('[Ocean] trigger called', {
-      time,
-      velocity,
-      hasSample: !!this.sampleBuffer,
-      sampleDuration: this.sampleBuffer?.duration,
-      ctxState: this.ctx.state,
-      outputConnected: this.output.numberOfOutputs,
-      paramLocks,
-      voiceParams: this.params
-    });
-
     if (!this.sampleBuffer) {
-      console.log('[Ocean] No sample buffer, playing click');
       this.triggerClick(time, velocity);
       return;
     }
 
     // Use voice params, with paramLocks overriding specific values if provided
     const p = paramLocks ? { ...this.params, ...paramLocks } : this.params;
-    console.log('[Ocean] Scheduling grains with params', { pitch: p.pitch, density: p.density, grainSize: p.grainSize, volume: p.volume });
 
     // Schedule grains for this trigger
     this.scheduleGrains(time, velocity, p);
@@ -412,14 +396,11 @@ export class OceanVoice {
   // === Parameter Methods ===
 
   getParams(): OceanVoiceParams {
-    console.log('[Ocean] getParams called, sampleUrl exists:', !!this.params.sampleUrl, 'length:', this.params.sampleUrl?.length);
     return { ...this.params };
   }
 
   setParams(params: Partial<OceanVoiceParams>): void {
-    console.log('[Ocean] setParams called with:', params);
     Object.assign(this.params, params);
-    console.log('[Ocean] params now:', this.params);
     if (params.volume !== undefined) {
       this.output.gain.setValueAtTime(this.params.volume / 100, this.ctx.currentTime);
     }
